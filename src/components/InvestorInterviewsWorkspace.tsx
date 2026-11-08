@@ -1995,9 +1995,29 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
               </span>
             </div>
 
-            <p className="text-xs text-amber-900 leading-relaxed">
-              <strong>Academic &amp; Professional Rigour:</strong> While customer reviews, interview statements, and telemetry establish intense customer friction around bank mandates and bounce penalties, <strong>H1 cannot be labelled &ldquo;Validated&rdquo;</strong> without measured behavioral outcome data from a functional recovery prototype or production AB experiment proving that automated recovery actually improves active 12-month retention.
-            </p>
+            <div className="text-xs text-amber-950 space-y-2 leading-relaxed">
+              <p>
+                Customer reviews, discovery interviews, and journey telemetry can provide qualitative and descriptive evidence of user friction related to bank mandates, SIP debit failures, and recovery experiences. Together, these sources can help identify recurring pain points, understand user behaviour, and assess whether mandate-related failures may contribute to SIP discontinuation.
+              </p>
+              <p className="font-semibold text-amber-900">
+                However, <strong>H1 must remain labelled &ldquo;Not Validated&rdquo; until the proposed SIP Recovery Assistant demonstrates measurable improvement through controlled usability testing or a statistically sound live experiment.</strong>
+              </p>
+              <p className="text-slate-700">
+                The proposed intervention—instant UPI retry and salary-aligned SIP rescheduling—must be evaluated against a suitable baseline or control group. Evaluation should measure:
+              </p>
+              <ul className="list-disc pl-5 space-y-1 text-slate-800">
+                <li><strong>Recovery success rate:</strong> Percentage of failed SIP instalments successfully recovered within a predefined period.</li>
+                <li><strong>Time to recovery:</strong> Time between the initial debit failure and successful instalment.</li>
+                <li><strong>Subsequent SIP continuity:</strong> Whether users continue making successful SIP instalments.</li>
+                <li><strong>12-month active SIP retention:</strong> Whether users have at least one successful SIP instalment in the 30 days preceding the 12-month observation point.</li>
+              </ul>
+              <p className="text-slate-700">
+                Usability testing can establish whether users understand and can successfully use the proposed experience. However, claims of statistically significant recovery improvement require an appropriately designed experiment with sufficient sample size, a defined comparison group, and predefined success criteria.
+              </p>
+              <p className="font-bold text-amber-950 bg-amber-100/90 p-2.5 rounded-lg border border-amber-300">
+                Until such evidence is available, the SIP Recovery Assistant remains a proposed solution, and H1 remains Not Validated.
+              </p>
+            </div>
           </div>
 
           {/* Three Evidence Pillars */}

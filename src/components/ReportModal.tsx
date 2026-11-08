@@ -230,19 +230,28 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose }) => 
               </span>
             </div>
 
-            <div className="rounded-lg border border-amber-300 bg-amber-50/60 p-4 space-y-2 text-amber-950 leading-relaxed">
+            <div className="rounded-lg border border-amber-300 bg-amber-50/60 p-4 space-y-2.5 text-amber-950 leading-relaxed">
               <p>
-                <strong>Scientific Validation Disclaimer:</strong> Customer review classification provides qualitative evidence of reported customer friction, not proof of causation or investor retention impact.
+                Customer reviews, discovery interviews, and journey telemetry can provide qualitative and descriptive evidence of user friction related to bank mandates, SIP debit failures, and recovery experiences. Together, these sources can help identify recurring pain points, understand user behaviour, and assess whether mandate-related failures may contribute to SIP discontinuation.
+              </p>
+              <p className="font-semibold text-amber-950">
+                However, <strong>H1 must remain labelled &ldquo;Not Validated&rdquo; until the proposed SIP Recovery Assistant demonstrates measurable improvement through controlled usability testing or a statistically sound live experiment.</strong>
               </p>
               <p className="text-slate-700">
-                Hypothesis H1 is strictly <strong>Not Validated</strong> based solely on App Store reviews, Play Store reviews, Reddit discussions, YouTube comments, or AI-generated classifications. Full empirical validation requires subsequent execution of:
+                The proposed intervention—instant UPI retry and salary-aligned SIP rescheduling—must be evaluated against a suitable baseline or control group. Evaluation should measure:
               </p>
-              <ol className="list-decimal pl-5 space-y-1 text-slate-800 font-medium pt-1">
-                <li><strong>Investor user interviews</strong> to probe mental models and emotional triggers behind churn.</li>
-                <li><strong>SIP recovery journey and drop-off analysis</strong> to measure actual funnel leakages.</li>
-                <li><strong>Behavioural prototype usability testing</strong> to evaluate cognitive load and task completion.</li>
-                <li><strong>Measurement of relevant recovery outcomes</strong> via randomized controlled A/B experimentation.</li>
-              </ol>
+              <ul className="list-disc pl-5 space-y-1 text-slate-800">
+                <li><strong>Recovery success rate:</strong> Percentage of failed SIP instalments successfully recovered within a predefined period.</li>
+                <li><strong>Time to recovery:</strong> Time between the initial debit failure and successful instalment.</li>
+                <li><strong>Subsequent SIP continuity:</strong> Whether users continue making successful SIP instalments.</li>
+                <li><strong>12-month active SIP retention:</strong> Whether users have at least one successful SIP instalment in the 30 days preceding the 12-month observation point.</li>
+              </ul>
+              <p className="text-slate-700">
+                Usability testing can establish whether users understand and can successfully use the proposed experience. However, claims of statistically significant recovery improvement require an appropriately designed experiment with sufficient sample size, a defined comparison group, and predefined success criteria.
+              </p>
+              <p className="font-bold text-amber-950 bg-amber-100/90 p-2.5 rounded-lg border border-amber-300">
+                Until such evidence is available, the SIP Recovery Assistant remains a proposed solution, and H1 remains Not Validated.
+              </p>
             </div>
 
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2 text-slate-600">
