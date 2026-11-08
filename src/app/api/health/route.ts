@@ -141,7 +141,8 @@ export async function GET() {
       lastAuditTimestamp: new Date().toISOString()
     },
     databaseCounts: {
-      originalReviews: tableChecks['original_reviews'],
+      originalReviewsInDatabase: tableChecks['original_reviews'],
+      originalReviews: tableChecks['original_reviews'], // backward compatibility
       evidenceCandidates: totalCandidates,
       approvedRecords: approvedCount,
       rejectedRecords: rejectedCount,
@@ -149,6 +150,18 @@ export async function GET() {
       pendingRecords: calculatedPending,
       auditedEvidenceRecords: tableChecks['audited_evidence_records'],
       decisionHistoryLogs: tableChecks['research_decision_history']
+    },
+    evidenceAndCorpusDistinction: {
+      originalCorpusRowsInSourceFiles: 62523,
+      originalReviewRowsInPostgres: tableChecks['original_reviews'] ?? 0,
+      screenedCandidateRowsInPostgres: totalCandidates ?? 0,
+      humanApprovedEvidenceRows: approvedCount ?? 0,
+      humanRejectedCandidateRows: rejectedCount ?? 0,
+      investigateCandidateRows: investigateCount ?? 0,
+      pendingCandidateRows: calculatedPending ?? 0,
+      auditedDeepDiveRecords: tableChecks['audited_evidence_records'] ?? 0,
+      sourceFileProvenance: "INDMoney_H1_Evidence_Collection_Workbook.xlsx [Sheet: 'All Original Reviews']",
+      integrityNote: "Source-file corpus rows (62,523) and PostgreSQL database rows (0) are explicitly separated to prevent conflating raw research source files with live database records."
     },
     candidateReconciliation: {
       totalCandidates,
