@@ -546,6 +546,272 @@ export const RecoveryPrototype: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* PHASE 6: EVIDENCE-TO-PROTOTYPE VALIDATION SUITE */}
+      <div className="space-y-6 pt-6 border-t border-slate-200">
+        {/* Section Header */}
+        <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-md bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800 uppercase tracking-wider">
+                Phase 6 Research Validation
+              </span>
+              <span className="rounded-full bg-amber-100 text-amber-900 px-2.5 py-0.5 text-[10px] font-bold">
+                Hypothesis H1 · Not Validated
+              </span>
+            </div>
+            <h3 className="mt-1 text-lg font-bold text-slate-900">
+              Evidence-to-Prototype Traceability &amp; Usability Evaluation Protocol
+            </h3>
+            <p className="text-xs text-slate-500">
+              Demonstrates how each screen directly resolves audited customer friction, establishes usability benchmarks, and defines the live experiment required to test H1.
+            </p>
+          </div>
+        </div>
+
+        {/* 1. Evidence-to-Feature Traceability Matrix */}
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h4 className="font-bold text-sm text-slate-900">1. Evidence-to-Feature Traceability Matrix</h4>
+              <p className="text-xs text-slate-500">Every design choice is strictly grounded in audited Phase 4 themes and Phase 5 evidence records.</p>
+            </div>
+            <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">
+              6 Customer Pain Points Mapped
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+                <tr>
+                  <th className="py-2.5 px-3">Prototype Screen &amp; Feature</th>
+                  <th className="py-2.5 px-3">Target Pain Point Theme</th>
+                  <th className="py-2.5 px-3">Audited Customer Evidence Records</th>
+                  <th className="py-2.5 px-3">Behavioral Hypothesis Addressed</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-600">
+                <tr className="hover:bg-slate-50/50">
+                  <td className="py-3 px-3 font-medium text-slate-900">
+                    <div className="font-bold text-blue-900">Screen 2: Zero-Penalty Reassurance</div>
+                    <div className="text-[11px] text-slate-500">Explicit &ldquo;₹0 INDMoney Fee &amp; Zero Credit Impact&rdquo; banner</div>
+                  </td>
+                  <td className="py-3 px-3">
+                    <span className="rounded bg-rose-100 text-rose-800 px-1.5 py-0.5 text-[10px] font-bold">PAIN-03</span>
+                    <div className="text-[11px] font-medium text-slate-700 mt-0.5">Bank Bounce Fines &amp; Penalties</div>
+                  </td>
+                  <td className="py-3 px-3 font-mono text-[11px]">
+                    <span className="font-semibold text-blue-700">IND-08924</span>, <span className="font-semibold text-blue-700">IND-51705</span>, <span className="font-semibold text-blue-700">IND-34882</span>, <span className="text-slate-500">EVD-002</span>
+                  </td>
+                  <td className="py-3 px-3 text-[11px] leading-relaxed">
+                    De-catastrophizes user fear of punitive bank charges (₹295–₹590), preventing emotional panic and immediate app uninstallation.
+                  </td>
+                </tr>
+
+                <tr className="hover:bg-slate-50/50">
+                  <td className="py-3 px-3 font-medium text-slate-900">
+                    <div className="font-bold text-blue-900">Screen 2: Diagnostic Return Reason</div>
+                    <div className="text-[11px] text-slate-500">NPCI return reason code &amp; clear failure cause</div>
+                  </td>
+                  <td className="py-3 px-3">
+                    <span className="rounded bg-rose-100 text-rose-800 px-1.5 py-0.5 text-[10px] font-bold">PAIN-02</span>
+                    <div className="text-[11px] font-medium text-slate-700 mt-0.5">Silent Mandate Failures</div>
+                  </td>
+                  <td className="py-3 px-3 font-mono text-[11px]">
+                    <span className="font-semibold text-blue-700">IND-25733</span>, <span className="font-semibold text-blue-700">IND-27496</span>, <span className="font-semibold text-blue-700">IND-31462</span>
+                  </td>
+                  <td className="py-3 px-3 text-[11px] leading-relaxed">
+                    Replaces opaque silence with immediate diagnostic transparency, clarifying whether failure was due to bank clearing lag vs insufficient funds.
+                  </td>
+                </tr>
+
+                <tr className="hover:bg-slate-50/50">
+                  <td className="py-3 px-3 font-medium text-slate-900">
+                    <div className="font-bold text-blue-900">Screen 3: Instant UPI Retry</div>
+                    <div className="text-[11px] text-slate-500">1-click UPI deep-link before 3:00 PM NAV cut-off</div>
+                  </td>
+                  <td className="py-3 px-3">
+                    <span className="rounded bg-rose-100 text-rose-800 px-1.5 py-0.5 text-[10px] font-bold">PAIN-02 &amp; PAIN-04</span>
+                    <div className="text-[11px] font-medium text-slate-700 mt-0.5">Payment Failure / Missing Manual Retry</div>
+                  </td>
+                  <td className="py-3 px-3 font-mono text-[11px]">
+                    <span className="font-semibold text-blue-700">IND-35186</span>, <span className="font-semibold text-blue-700">IND-00358</span>, <span className="text-slate-500">EVD-001</span>, <span className="text-slate-500">EVD-002</span>
+                  </td>
+                  <td className="py-3 px-3 text-[11px] leading-relaxed">
+                    Restores the removed manual payment pathway, enabling investors to salvage missed instalments on the same day without breaking compounding.
+                  </td>
+                </tr>
+
+                <tr className="hover:bg-slate-50/50">
+                  <td className="py-3 px-3 font-medium text-slate-900">
+                    <div className="font-bold text-blue-900">Screen 3: Salary Rescheduling (+3 to +7 Days)</div>
+                    <div className="text-[11px] text-slate-500">Shift permanent debit date without mandate cancellation</div>
+                  </td>
+                  <td className="py-3 px-3">
+                    <span className="rounded bg-rose-100 text-rose-800 px-1.5 py-0.5 text-[10px] font-bold">PAIN-06</span>
+                    <div className="text-[11px] font-medium text-slate-700 mt-0.5">Mandate Modification Blocks</div>
+                  </td>
+                  <td className="py-3 px-3 font-mono text-[11px]">
+                    <span className="font-semibold text-blue-700">IND-15499</span>, <span className="font-semibold text-blue-700">IND-46721</span>, <span className="text-slate-500">EVD-003</span>
+                  </td>
+                  <td className="py-3 px-3 text-[11px] leading-relaxed">
+                    Solves cash-flow timing mismatch without subjecting user to a 10-day NACH re-approval period that historically precipitated 72% drop-off.
+                  </td>
+                </tr>
+
+                <tr className="hover:bg-slate-50/50">
+                  <td className="py-3 px-3 font-medium text-slate-900">
+                    <div className="font-bold text-blue-900">Screen 4: 1-Click Simulated Resolution</div>
+                    <div className="text-[11px] text-slate-500">Instant exchange submission &amp; order acknowledgement</div>
+                  </td>
+                  <td className="py-3 px-3">
+                    <span className="rounded bg-rose-100 text-rose-800 px-1.5 py-0.5 text-[10px] font-bold">PAIN-04</span>
+                    <div className="text-[11px] font-medium text-slate-700 mt-0.5">Ledger De-synchronization</div>
+                  </td>
+                  <td className="py-3 px-3 font-mono text-[11px]">
+                    <span className="font-semibold text-blue-700">IND-34635</span>, <span className="font-semibold text-blue-700">IND-10308</span>, <span className="font-semibold text-blue-700">IND-35068</span>
+                  </td>
+                  <td className="py-3 px-3 text-[11px] leading-relaxed">
+                    Provides instantaneous exchange order ID and folio allocation tracking, eliminating anxiety that funds were debited into a vacuum.
+                  </td>
+                </tr>
+
+                <tr className="hover:bg-slate-50/50">
+                  <td className="py-3 px-3 font-medium text-slate-900">
+                    <div className="font-bold text-blue-900">Screen 5: SIP Health &amp; Revocation Clarity</div>
+                    <div className="text-[11px] text-slate-500">Compounding streak protection &amp; bank mandate state</div>
+                  </td>
+                  <td className="py-3 px-3">
+                    <span className="rounded bg-rose-100 text-rose-800 px-1.5 py-0.5 text-[10px] font-bold">PAIN-01</span>
+                    <div className="text-[11px] font-medium text-slate-700 mt-0.5">Phantom Debits Post-Pause / Cancel</div>
+                  </td>
+                  <td className="py-3 px-3 font-mono text-[11px]">
+                    <span className="font-semibold text-blue-700">IND-19705</span>, <span className="font-semibold text-blue-700">IND-42585</span>, <span className="font-semibold text-blue-700">IND-59144</span>
+                  </td>
+                  <td className="py-3 px-3 text-[11px] leading-relaxed">
+                    Educates investors on bank-level mandate lifecycle and transparently synchronizes app pause/cancel states with NPCI sponsor banks.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* 2. Usability Testing Protocol & Metrics */}
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+            <div className="border-b border-slate-100 pb-2.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Phase 6 Evaluation Framework</span>
+              <h4 className="font-bold text-sm text-slate-900 mt-0.5">Usability Testing Protocol (N = 10 First-Time Investors)</h4>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Before deploying any code to live traffic, the interactive prototype must be evaluated with 10 first-time mutual fund SIP investors representing PSU and Private bank cohorts.
+            </p>
+
+            <div className="space-y-2 text-xs">
+              <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-2.5">
+                <div className="font-bold text-slate-900">Task 1: Failure Diagnostic Comprehension</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">User sees Screen 2 and explains why debit failed and whether they incurred a fine.</div>
+                <div className="text-[10px] font-semibold text-blue-700 mt-1">Success Criteria: Comprehension &lt; 15 seconds; 100% recognise ₹0 penalty.</div>
+              </div>
+
+              <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-2.5">
+                <div className="font-bold text-slate-900">Task 2: Instant UPI Retry Execution</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">User selects UPI retry option and completes simulated authorization before 3 PM.</div>
+                <div className="text-[10px] font-semibold text-blue-700 mt-1">Success Criteria: Task completion rate &ge; 90%; time on task &lt; 45 seconds.</div>
+              </div>
+
+              <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-2.5">
+                <div className="font-bold text-slate-900">Task 3: Salary Alignment Rescheduling</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">User with salary credited on 7th shifts debit date from 5th to 10th.</div>
+                <div className="text-[10px] font-semibold text-blue-700 mt-1">Success Criteria: User avoids mandate cancellation; recognizes date shift.</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+            <div className="border-b border-slate-100 pb-2.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Quantitative Benchmarks</span>
+              <h4 className="font-bold text-sm text-slate-900 mt-0.5">Usability Target Scorecard</h4>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50">
+                <div>
+                  <div className="font-bold text-slate-900">Task Completion Rate (TCR)</div>
+                  <div className="text-[11px] text-slate-500">Successful end-to-end recovery without moderator assistance</div>
+                </div>
+                <span className="font-bold text-emerald-700 text-sm">&ge; 85%</span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50">
+                <div>
+                  <div className="font-bold text-slate-900">System Usability Scale (SUS)</div>
+                  <div className="text-[11px] text-slate-500">Standardized 10-item usability perception questionnaire</div>
+                </div>
+                <span className="font-bold text-emerald-700 text-sm">&ge; 80 / 100</span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50">
+                <div>
+                  <div className="font-bold text-slate-900">Single Ease Question (SEQ)</div>
+                  <div className="text-[11px] text-slate-500">Post-task difficulty rating (1 = Very Difficult, 7 = Very Easy)</div>
+                </div>
+                <span className="font-bold text-emerald-700 text-sm">&ge; 5.8 / 7.0</span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50">
+                <div>
+                  <div className="font-bold text-slate-900">Time to Complete Recovery (TCR-T)</div>
+                  <div className="text-[11px] text-slate-500">Duration from failure alert view to UPI order submission</div>
+                </div>
+                <span className="font-bold text-emerald-700 text-sm">&lt; 60 seconds</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Scientific Validation Boundary & Controlled Experiment Specifications */}
+        <div className="rounded-xl border border-amber-300 bg-amber-50/60 p-5 space-y-3">
+          <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
+            <AlertTriangle size={17} className="text-amber-700 shrink-0" />
+            <span>Scientific Boundary: What Proving H1 Requires Beyond Prototype Usability</span>
+          </div>
+
+          <p className="text-xs text-amber-950 leading-relaxed">
+            Successful usability testing of this prototype will demonstrate that <em>users can easily execute recovery</em> when guided. However, <strong>it does not prove that H1 improves 12-month active SIP retention</strong>. Establishing causal validity requires a live, randomized controlled experiment:
+          </p>
+
+          <div className="grid gap-3 sm:grid-cols-3 text-xs pt-1">
+            <div className="rounded-lg bg-white/80 p-3 border border-amber-200">
+              <div className="font-bold text-slate-900">Control Cohort (A)</div>
+              <div className="text-[11px] text-slate-600 mt-1">
+                Standard failure alert with generic support ticket link. No inline UPI retry; mandate rescheduling requires full cancellation.
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-white/80 p-3 border border-amber-200">
+              <div className="font-bold text-blue-900">Treatment Cohort (B)</div>
+              <div className="text-[11px] text-slate-600 mt-1">
+                SIP Recovery Assistant: Instant UPI retry before 3:00 PM NAV cut-off + automated salary-aligned debit date rescheduling.
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-white/80 p-3 border border-amber-200">
+              <div className="font-bold text-emerald-900">Primary Causal Metric</div>
+              <div className="text-[11px] text-slate-600 mt-1">
+                <strong>12-Month Active Retention:</strong> Statistically significant (&Delta; &ge; +15%) increase in investors with an active instalment at Month 12.
+              </div>
+            </div>
+          </div>
+
+          <div className="text-[11px] text-amber-900/80 font-medium pt-1">
+            Status: <strong>NOT VALIDATED</strong>. Until this randomized control trial is executed and analyzed, H1 remains a grounded discovery hypothesis.
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

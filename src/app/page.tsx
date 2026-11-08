@@ -107,7 +107,7 @@ export default function Home() {
       case 'h1_workspace':
         return 'H1 Project Workspace';
       case 'prototype':
-        return 'SIP Recovery Prototype';
+        return 'SIP Recovery Assistant · Evidence-to-Prototype Validation (Phase 6)';
       case 'survey':
         return 'Investor Interviews & Behavioural Journey Telemetry (Phase 5)';
       case 'decision_log':

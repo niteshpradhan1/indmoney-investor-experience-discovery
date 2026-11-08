@@ -132,7 +132,7 @@ export async function GET() {
     status: queryErrors.length === 0 && configured && dbStatus === 'connected' ? 'ok' : 'degraded',
     project: 'INDMoney Investor Experience Discovery',
     targetDeadline: '2026-11-09',
-    phase: 'Phase 5: Investor Interviews, Journey Telemetry & Evidence Governance',
+    phase: 'Phase 6: Evidence-to-Prototype Validation',
     h1ValidationStatus: 'NOT VALIDATED (Scientific Validation Boundary Enforced)',
     deployment: {
       platform: 'Vercel Serverless (Next.js 15)',

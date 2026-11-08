@@ -38,8 +38,8 @@ export const Navigation: React.FC<NavigationProps> = ({
     { id: 'themes', label: 'Themes & Insights', icon: PieChart, badge: themeCount },
     { id: 'opportunities', label: 'Opportunities', icon: Lightbulb, badge: opportunityCount },
     { id: 'h1_workspace', label: 'H1 Project Workspace', icon: Briefcase, badge: 'Selected', highlight: true },
-    { id: 'prototype', label: 'SIP Recovery Prototype', icon: Smartphone, badge: '5 Screens', highlight: true },
-    { id: 'survey', label: 'Interviews & Telemetry', icon: HelpCircle, badge: 'Phase 5', highlight: true },
+    { id: 'prototype', label: 'SIP Recovery Prototype', icon: Smartphone, badge: 'Phase 6', highlight: true },
+    { id: 'survey', label: 'Interviews & Telemetry', icon: HelpCircle, badge: 'Module 1-3' },
     { id: 'decision_log', label: 'Decision Log', icon: ClipboardList }
   ];
 
