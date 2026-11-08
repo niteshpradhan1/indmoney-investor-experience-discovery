@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Printer, Sparkles, Calendar } from 'lucide-react';
+import { ShieldCheck, Printer, Sparkles } from 'lucide-react';
 
 interface HeaderProps {
   onPrint: () => void;
@@ -18,10 +18,6 @@ export const Header: React.FC<HeaderProps> = ({ onPrint, activeSectionTitle }) =
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold uppercase tracking-[.18em] text-blue-700">
                 INDMoney · Product Research
-              </span>
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700 flex items-center gap-1">
-                <Calendar size={10} className="text-blue-700" />
-                Target: 9 Nov 2026
               </span>
             </div>
             <h1 className="mt-0.5 text-base font-semibold text-slate-900 flex items-center gap-2">
@@ -46,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({ onPrint, activeSectionTitle }) =
           <button
             onClick={onPrint}
             className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition shadow-sm"
-            title="Generate printable view or PDF of graduation project"
+            title="Generate printable view or PDF report"
           >
             <Printer size={14} className="text-slate-600" />
             <span>Export Report / PDF</span>

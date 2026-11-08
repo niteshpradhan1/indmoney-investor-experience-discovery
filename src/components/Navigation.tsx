@@ -8,7 +8,6 @@ import {
   Smartphone,
   ClipboardList,
   ShieldCheck,
-  Calendar,
   HelpCircle,
   CheckSquare
 } from 'lucide-react';
@@ -99,11 +98,8 @@ export const Navigation: React.FC<NavigationProps> = ({
       </div>
 
       <div className="mt-4 pt-3 border-t border-slate-100 px-2 text-[11px] text-slate-400 flex items-center justify-between">
-        <span className="flex items-center gap-1">
-          <Calendar size={11} className="text-blue-700" />
-          Target: 9 Nov 2026
-        </span>
-        <span className="text-emerald-700 font-bold">Phase 2 Audit</span>
+        <span>INDmoney Platform</span>
+        <span className="font-medium text-slate-500">Research Discovery</span>
       </div>
     </aside>
   );

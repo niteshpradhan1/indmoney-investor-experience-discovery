@@ -8,15 +8,15 @@ import { RecoveryPrototype } from '@/components/RecoveryPrototype';
 export default function PrototypePage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
-      {/* Top Banner: Deliverable & Validation Boundary */}
+      {/* Top Banner: Investor Experience Discovery */}
       <div className="bg-slate-900 text-white px-4 py-2 text-xs border-b border-slate-800">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="rounded bg-indigo-500/20 text-indigo-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border border-indigo-500/30">
-              NextLeap PM Deliverable #2
+              Interactive Prototype
             </span>
             <span className="font-semibold text-slate-200">
-              Deployed AI-Native MVP: SIP Recovery Assistant
+              SIP Recovery Assistant
             </span>
           </div>
 
@@ -24,13 +24,12 @@ export default function PrototypePage() {
             <span className="rounded bg-rose-500/20 text-rose-300 px-2 py-0.5 text-[10px] font-bold border border-rose-500/30">
               H1: NOT VALIDATED
             </span>
-            <span className="text-slate-400">Target Submission: 9 November 2026</span>
             <Link
               href="/"
               className="text-indigo-300 hover:text-white flex items-center gap-1 font-semibold transition"
             >
               <ArrowLeft size={13} />
-              <span>Back to AI Discovery Engine</span>
+              <span>Back to Discovery Engine</span>
             </Link>
           </div>
         </div>
@@ -88,14 +87,14 @@ export default function PrototypePage() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
           <div className="space-y-1">
             <p className="font-semibold text-slate-700">
-              INDMoney First-Time SIP Investor Retention Discovery • NextLeap PM Graduation Project
+              © {new Date().getFullYear()} INDmoney. SIP Investor Experience Discovery Platform. All rights reserved.
             </p>
             <p className="text-[11px] text-slate-500">
               Scientific Boundary: Hypothesis H1 (Bank Mandate Debit Failure Recovery) remains strictly <span className="font-bold text-rose-700">NOT VALIDATED</span>. This prototype tests usability and qualitative comprehension; causal retention impact has not been measured.
             </p>
           </div>
           <div className="text-[11px] text-slate-400">
-            Deployed on Vercel Edge / Serverless • Next.js 15
+            Simulated Research Environment
           </div>
         </div>
       </footer>

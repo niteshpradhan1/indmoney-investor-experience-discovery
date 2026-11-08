@@ -235,12 +235,12 @@ export default function Home() {
       <footer className="border-t border-slate-200 bg-white py-4 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div>
-            INDMoney Investor Experience Discovery • NextLeap PM Graduation Project (Target Deadline: 9 November 2026)
+            © {new Date().getFullYear()} INDmoney. Investor Experience Discovery Platform. All rights reserved.
           </div>
-          <div className="flex items-center gap-3 text-slate-400">
-            <span>Phase 2 Research Credibility Audit Complete</span>
+          <div className="flex items-center gap-4 text-slate-400">
+            <span>Mutual Fund &amp; SIP Research</span>
             <span>•</span>
-            <span>Human-Assisted Research Architecture</span>
+            <span>SEBI Registered Intermediary Standards</span>
           </div>
         </div>
       </footer>
