@@ -153,6 +153,43 @@ export const EvidenceLibrary: React.FC<EvidenceLibraryProps> = ({
         )}
       </div>
 
+      {/* Scientific Validation Boundary Banner */}
+      <div className="rounded-xl border-2 border-amber-300 bg-amber-50/70 p-4 text-xs text-amber-950 shadow-2xs space-y-2.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200 pb-2">
+          <div className="flex items-center gap-2 font-bold text-amber-900 text-sm">
+            <AlertTriangle size={17} className="text-amber-700 shrink-0" />
+            <span>Scientific Validation Boundary · Exploratory Research Protocol</span>
+          </div>
+          <span className="rounded-full bg-amber-200/90 px-2.5 py-0.5 text-[11px] font-extrabold text-amber-950 border border-amber-300">
+            H1 Status: Not Validated
+          </span>
+        </div>
+        <p className="leading-relaxed text-amber-900 text-xs">
+          <strong>Customer review classification provides qualitative evidence of reported friction, not proof of causation or investor retention impact.</strong> Hypothesis H1 cannot be labeled as &ldquo;Validated&rdquo; based solely on App Store reviews, Play Store reviews, Reddit discussions, YouTube comments, or AI-generated classifications.
+        </p>
+        <div className="rounded-lg bg-white/90 p-3 border border-amber-200 space-y-1.5 text-[11px]">
+          <div className="font-bold text-slate-900">Subsequent Validation Required Prior to Phase 4 / Solution Commitment:</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-1 text-[11px]">
+            <div className="rounded border border-amber-200 bg-amber-50/50 p-2">
+              <span className="font-bold text-slate-800 block">1. User Interviews</span>
+              <span className="text-slate-600 text-[10px]">1:1 qualitative sessions probing post-failure mental models and anxiety.</span>
+            </div>
+            <div className="rounded border border-amber-200 bg-amber-50/50 p-2">
+              <span className="font-bold text-slate-800 block">2. Drop-off Analysis</span>
+              <span className="text-slate-600 text-[10px]">Funnel drop-off measurement following first mandate debit failure.</span>
+            </div>
+            <div className="rounded border border-amber-200 bg-amber-50/50 p-2">
+              <span className="font-bold text-slate-800 block">3. Usability Testing</span>
+              <span className="text-slate-600 text-[10px]">Behavioural task completion and comprehension on interactive prototype.</span>
+            </div>
+            <div className="rounded border border-amber-200 bg-amber-50/50 p-2">
+              <span className="font-bold text-slate-800 block">4. Outcome Metrics</span>
+              <span className="text-slate-600 text-[10px]">Empirical 72-hour instalment recovery rate lift and active retention.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Human Review Protocol Disclaimer */}
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm text-xs leading-5 text-slate-600 flex items-start gap-3">
         <ShieldCheck size={18} className="text-blue-700 shrink-0 mt-0.5" />

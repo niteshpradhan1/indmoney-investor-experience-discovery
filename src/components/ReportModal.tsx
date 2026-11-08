@@ -218,15 +218,54 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose }) => 
             </div>
           </div>
 
-          {/* Section 6: Research Credibility & Identified Gaps */}
-          <div className="space-y-3 border-t border-slate-200 pt-4 text-xs text-slate-500">
-            <div className="flex items-center gap-2 font-bold text-slate-700">
-              <ShieldCheck size={14} className="text-emerald-600" />
-              <span>Research Credibility Protocol &amp; Remaining Gaps</span>
+          {/* Section 6: Scientific Validation Boundary & Research Credibility */}
+          <div className="space-y-3.5 border-t-2 border-slate-900 pt-5 text-xs text-slate-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
+                <ShieldCheck size={16} className="text-blue-700" />
+                <span>6. Scientific Validation Boundary (Exploratory Research Protocol)</span>
+              </div>
+              <span className="rounded-full bg-amber-100 border border-amber-300 px-3 py-0.5 text-xs font-bold text-amber-900">
+                H1 Status: Not Validated
+              </span>
             </div>
-            <p>
-              This graduation project adheres to rigorous research governance. Public reviews and forum discussions provide valuable qualitative insights regarding user anxiety, fear of bounce penalties, and desire for instant UPI recovery. However, public data cannot verify internal bank gateway timeout ratios or actual historical retention rates. All baseline statistics are explicitly labeled as model assumptions and illustrative benchmarks pending production telemetry access.
-            </p>
+
+            <div className="rounded-lg border border-amber-300 bg-amber-50/60 p-4 space-y-2 text-amber-950 leading-relaxed">
+              <p>
+                <strong>Scientific Validation Disclaimer:</strong> Customer review classification provides qualitative evidence of reported customer friction, not proof of causation or investor retention impact.
+              </p>
+              <p className="text-slate-700">
+                Hypothesis H1 is strictly <strong>Not Validated</strong> based solely on App Store reviews, Play Store reviews, Reddit discussions, YouTube comments, or AI-generated classifications. Full empirical validation requires subsequent execution of:
+              </p>
+              <ol className="list-decimal pl-5 space-y-1 text-slate-800 font-medium pt-1">
+                <li><strong>Investor user interviews</strong> to probe mental models and emotional triggers behind churn.</li>
+                <li><strong>SIP recovery journey and drop-off analysis</strong> to measure actual funnel leakages.</li>
+                <li><strong>Behavioural prototype usability testing</strong> to evaluate cognitive load and task completion.</li>
+                <li><strong>Measurement of relevant recovery outcomes</strong> via randomized controlled A/B experimentation.</li>
+              </ol>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2 text-slate-600">
+              <strong className="text-slate-900 block text-xs">Four-Tier Research Distinction Standard:</strong>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 pt-1 text-[11px]">
+                <div className="p-2.5 rounded bg-white border border-slate-200">
+                  <span className="font-bold text-slate-900 block">1. Observed Statements</span>
+                  <span>Verbatim review text directly extracted from public app stores.</span>
+                </div>
+                <div className="p-2.5 rounded bg-white border border-slate-200">
+                  <span className="font-bold text-slate-900 block">2. Researcher Interpretations</span>
+                  <span>PM analytical synthesis, persona pain mappings, and hypothesis framing.</span>
+                </div>
+                <div className="p-2.5 rounded bg-white border border-slate-200">
+                  <span className="font-bold text-slate-900 block">3. AI Suggestions</span>
+                  <span>Heuristic category suggestions; strictly non-authoritative drafts.</span>
+                </div>
+                <div className="p-2.5 rounded bg-white border border-slate-200">
+                  <span className="font-bold text-slate-900 block">4. Measured Outcomes</span>
+                  <span>Empirical metrics from upcoming usability trials and A/B experiments.</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

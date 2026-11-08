@@ -317,31 +317,81 @@ export const H1Workspace: React.FC<H1WorkspaceProps> = ({
         {/* SECTION F: Validation Status */}
         {activeSection === 'F' && (
           <div className="mt-6 space-y-6">
-            <div className="rounded-xl border-2 border-amber-300 bg-amber-50/40 p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wide text-amber-900">
-                  Section F · Hypothesis Validation Status
+            {/* Scientific Validation Boundary Alert */}
+            <div className="rounded-xl border-2 border-amber-400 bg-amber-50/60 p-5 space-y-3.5 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200 pb-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+                  <AlertTriangle size={15} className="text-amber-700" />
+                  Section F · Scientific Validation Boundary &amp; Hypothesis Status
                 </span>
-                <span className="rounded-full bg-amber-200/80 px-3 py-1 text-xs font-extrabold text-amber-900">
-                  {H1_DETAILS.validationStatus.currentStatus}
+                <span className="rounded-full bg-amber-200 px-3 py-1 text-xs font-extrabold text-amber-950 border border-amber-300">
+                  Status: Not Validated
                 </span>
               </div>
 
-              <p className="text-xs leading-5 text-slate-700 font-medium">
-                {H1_DETAILS.validationStatus.statusNote}
-              </p>
+              <div className="text-xs leading-relaxed text-amber-950 space-y-2">
+                <p>
+                  <strong>Core Methodological Constraint:</strong> Customer review classification provides qualitative evidence of reported friction, not proof of causation or investor retention impact.
+                </p>
+                <p className="text-slate-700">
+                  Hypothesis H1 cannot be labeled as &ldquo;Validated&rdquo; based solely on App Store reviews, Play Store reviews, Reddit discussions, YouTube comments, or AI-generated classifications. The status of H1 remains strictly <strong>&ldquo;Not Validated&rdquo;</strong> until experimental and telemetry evidence is obtained.
+                </p>
+              </div>
 
               <div className="rounded-lg bg-white border border-amber-200 p-4 space-y-2 text-xs">
-                <div className="font-bold text-slate-900">Criteria Required to Mark H1 as Validated:</div>
-                <ul className="list-disc pl-5 space-y-1.5 text-slate-600">
-                  {H1_DETAILS.validationStatus.criteriaToValidate.map((crit, idx) => (
-                    <li key={idx}>{crit}</li>
-                  ))}
-                </ul>
+                <div className="font-bold text-slate-900">Mandatory Requirements for Subsequent Empirical Validation:</div>
+                <div className="grid gap-2 sm:grid-cols-2 pt-1">
+                  <div className="rounded border border-slate-200 bg-slate-50 p-2.5">
+                    <div className="font-bold text-slate-800">1. Investor User Interviews</div>
+                    <div className="text-[11px] text-slate-600 mt-0.5">1:1 qualitative interviews exploring post-debit emotional states, penalty anxiety, and cancellation triggers.</div>
+                  </div>
+                  <div className="rounded border border-slate-200 bg-slate-50 p-2.5">
+                    <div className="font-bold text-slate-800">2. Journey &amp; Drop-off Analysis</div>
+                    <div className="text-[11px] text-slate-600 mt-0.5">Quantitative funnel telemetry measuring actual drop-off rates from failure notification to re-attempt.</div>
+                  </div>
+                  <div className="rounded border border-slate-200 bg-slate-50 p-2.5">
+                    <div className="font-bold text-slate-800">3. Prototype Usability Testing</div>
+                    <div className="text-[11px] text-slate-600 mt-0.5">Moderated task-based usability trials evaluating time-to-recovery and cognitive clarity on the 5-screen prototype.</div>
+                  </div>
+                  <div className="rounded border border-slate-200 bg-slate-50 p-2.5">
+                    <div className="font-bold text-slate-800">4. Measured Recovery Outcomes</div>
+                    <div className="text-[11px] text-slate-600 mt-0.5">Statistically significant lift in 72-hour instalment recovery and 12-month active SIP retention.</div>
+                  </div>
+                </div>
               </div>
 
-              <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-700">
+              <div className="rounded-lg bg-amber-100/70 p-3 text-xs text-amber-950 font-medium">
                 <strong>Experimental Gating: </strong>{H1_DETAILS.validationStatus.experimentalGating}
+              </div>
+            </div>
+
+            {/* 4-Way Research Data Separation Matrix */}
+            <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-3 text-xs shadow-sm">
+              <h4 className="font-bold text-slate-900 text-sm">Research Data Distinction Matrix</h4>
+              <p className="text-slate-500 text-[11px]">
+                To maintain research integrity, four distinct categories of knowledge are tracked independently:
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 pt-1">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-1">
+                  <span className="font-bold text-slate-900 block text-xs">A. Observed Customer Statements</span>
+                  <p className="text-[11px] text-slate-600 leading-snug">Verbatim quotes from Google Play and App Store reviews describing debits, bounce fees, and silence.</p>
+                  <span className="inline-block rounded bg-slate-200 px-1.5 py-0.5 text-[9px] font-semibold text-slate-700 mt-1">Empirical Qualitative Voice</span>
+                </div>
+                <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3 space-y-1">
+                  <span className="font-bold text-blue-900 block text-xs">B. Researcher Interpretations</span>
+                  <p className="text-[11px] text-slate-600 leading-snug">PM qualitative deductions, persona pain mappings, and hypothesis formulation connecting friction to drop-off.</p>
+                  <span className="inline-block rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-semibold text-blue-800 mt-1">PM Synthesis &amp; Hypotheses</span>
+                </div>
+                <div className="rounded-lg border border-indigo-200 bg-indigo-50/40 p-3 space-y-1">
+                  <span className="font-bold text-indigo-900 block text-xs">C. AI-Assisted Suggestions</span>
+                  <p className="text-[11px] text-slate-600 leading-snug">Heuristic classification drafts and excerpt extractions; non-authoritative until confirmed by a human.</p>
+                  <span className="inline-block rounded bg-indigo-100 px-1.5 py-0.5 text-[9px] font-semibold text-indigo-800 mt-1">Advisory Machine Drafts</span>
+                </div>
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 space-y-1">
+                  <span className="font-bold text-emerald-950 block text-xs">D. Measured Experimental Outcomes</span>
+                  <p className="text-[11px] text-slate-600 leading-snug">Empirical results from upcoming usability sessions, cohort telemetry, and randomized A/B experimentation.</p>
+                  <span className="inline-block rounded bg-emerald-200 px-1.5 py-0.5 text-[9px] font-bold text-emerald-900 mt-1">Causal Validation Standard</span>
+                </div>
               </div>
             </div>
 

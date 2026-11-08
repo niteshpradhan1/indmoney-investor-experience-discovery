@@ -818,6 +818,9 @@ export const EvidenceReviewWorkspace: React.FC<EvidenceReviewWorkspaceProps> = (
             <p className="mt-0.5 text-slate-600">
               Reviews are evaluated against the 9 categories and strict 3-tier evidence rules. AI recommendations remain advisory drafts until approved or modified by you.
             </p>
+            <p className="mt-1 text-[11px] text-amber-900 font-medium bg-amber-50/80 rounded px-2 py-1 border border-amber-200 inline-block">
+              <strong>Scientific Validation Boundary:</strong> Classification documents reported customer friction, not proof of retention causation. H1 status remains <strong>Not Validated</strong> pending user interviews and experimental testing.
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
