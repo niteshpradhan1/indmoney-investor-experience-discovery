@@ -401,7 +401,21 @@ export type PrototypeStep =
   | 'confirmation'        // 4. Confirmation (distinguishing requested, pending, success)
   | 'completion';         // 5. Completion (next steps summary & return)
 
-export type ConfirmationStatus = 'retry_requested' | 'payment_pending' | 'rescheduled_pending' | 'payment_successful';
+export type ConfirmationStatus =
+  | 'retry_requested'
+  | 'payment_pending'
+  | 'debit_unconfirmed'
+  | 'rescheduled_pending'
+  | 'payment_successful'
+  | 'payment_failed';
+
+export interface UsabilityEvaluationChecklist {
+  understandsWhyFailed: boolean;
+  understandsDebitStatus: boolean;
+  choosesBetweenRetryAndReschedule: boolean;
+  completesSelectedJourney: boolean;
+  understandsFinalPaymentStatus: boolean;
+}
 
 export interface UsabilityTask {
   id: string;

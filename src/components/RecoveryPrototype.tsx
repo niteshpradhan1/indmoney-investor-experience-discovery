@@ -6,29 +6,28 @@ import {
   Calendar,
   Clock,
   ArrowRight,
-  ShieldCheck,
+  ShieldAlert,
   RotateCcw,
   CreditCard,
   Zap,
   Info,
   ChevronRight,
   RefreshCw,
-  Sparkles,
   Award,
   HelpCircle,
-  ClipboardList,
   UserCheck,
-  FileText,
   CheckSquare,
   XCircle,
-  Activity,
-  Layers
+  Layers,
+  Settings,
+  HelpCircle as QuestionIcon
 } from 'lucide-react';
 import {
   PrototypeStep,
   ConfirmationStatus,
   UsabilityTask,
-  UsabilityObservation
+  UsabilityObservation,
+  UsabilityEvaluationChecklist
 } from '../types';
 
 // ==============================================================================
@@ -39,55 +38,56 @@ const NEUTRAL_USABILITY_TASKS: UsabilityTask[] = [
   {
     id: 'TASK-1',
     taskNumber: 1,
-    title: 'Failure Awareness & Diagnostic Comprehension',
-    scenario: 'You opened the app and noticed your regular monthly SIP instalment did not go through as expected.',
-    instruction: 'Review the failure screen and explain in your own words what happened and what you understand about possible reasons.',
+    title: 'Failure Awareness & Debit Status Understanding',
+    scenario: 'You opened the app and noticed your regular monthly SIP instalment did not go through.',
+    instruction: 'Review the failure notice and explain what happened, whether your bank account was debited, and what you should check next.',
     acceptanceCriteria: [
       'Participant identifies that payment did not complete.',
-      'Participant notices that no specific bank code is assumed.',
-      'Participant observes illustrative possible causes without panic.',
-      'Participant understands that INDMoney does not charge a penalty.'
+      'Participant recognizes that bank debit is unconfirmed and needs bank statement verification.',
+      'Participant notes absence of manufactured bank failure codes.',
+      'Participant understands platform policy guidance without false guarantees.'
     ],
-    neutralPrompt: 'Looking at this screen, what does it tell you about your recent payment?'
+    neutralPrompt: 'Looking at this screen, what does it tell you about your recent payment and your bank account balance?'
   },
   {
     id: 'TASK-2',
     taskNumber: 2,
-    title: 'Evaluating Recovery Options Neutrally',
+    title: 'Comparing Recovery Options Neutrally',
     scenario: 'You want to understand what actions you can take regarding this failed instalment.',
     instruction: 'Look at the recovery choices presented on screen. Explain the difference between Option A (Instant Retry) and Option B (Future Rescheduling).',
     acceptanceCriteria: [
       'Participant distinguishes immediate payment attempt from date shifting.',
       'Participant recognizes neither option promises immediate NAV eligibility.',
-      'Participant selects an option based on their own hypothetical cash-flow.'
+      'Participant understands rescheduling may change investment timing and applicable NAV.',
+      'Participant selects an option based on hypothetical cash-flow.'
     ],
     neutralPrompt: 'How would you describe the difference between these two options?'
   },
   {
     id: 'TASK-3',
     taskNumber: 3,
-    title: 'Executing a Simulated Retry & Observing Pending State',
-    scenario: 'You have chosen to try paying the instalment immediately using a digital payment method.',
+    title: 'Executing a Simulated Retry & Observing Pending Outcome',
+    scenario: 'You choose to submit an immediate payment retry.',
     instruction: 'Submit the retry request and observe what the confirmation screen reports.',
     acceptanceCriteria: [
       'Participant understands that submitting a retry does not equal instant success.',
-      'Participant recognizes "Retry Requested" vs "Payment Pending" states.',
-      'Participant remains comfortable waiting for bank confirmation.'
+      'Participant recognizes "Retry Request Submitted — Payment Outcome Pending".',
+      'Participant remains comfortable waiting for official bank confirmation.'
     ],
     neutralPrompt: 'What is the current status of your payment after submitting this request?'
   },
   {
     id: 'TASK-4',
     taskNumber: 4,
-    title: 'Exploring Future Date Rescheduling',
-    scenario: 'You realize your salary arrives on the 7th of every month, but your SIP was scheduled for the 5th.',
-    instruction: 'Select a future rescheduling date to align with your salary and review the confirmation summary.',
+    title: 'Selecting a Valid Rescheduling Date',
+    scenario: 'Your salary arrives on the 7th of every month, but your SIP was scheduled on the 5th.',
+    instruction: 'Select an appropriate future date using the date picker and review the confirmation summary.',
     acceptanceCriteria: [
-      'Participant chooses an appropriate future date (e.g. 10th).',
-      'Participant notices mandate is not cancelled or broken.',
-      'Participant confirms understanding of next month debit schedule.'
+      'Participant selects a validated future date (e.g. 10th or 12th).',
+      'Participant verifies selected date before confirmation.',
+      'Participant understands future debits are subject to bank mandate configuration.'
     ],
-    neutralPrompt: 'What will happen to your next month investment if you confirm this rescheduling?'
+    neutralPrompt: 'What will happen to your next instalment if you confirm this date change?'
   }
 ];
 
@@ -101,16 +101,29 @@ export const RecoveryPrototype: React.FC = () => {
 
   // Recovery Option selection: 'retry' (Option A) vs 'reschedule' (Option B)
   const [selectedOption, setSelectedOption] = useState<'retry' | 'reschedule'>('retry');
-  const [rescheduleDate, setRescheduleDate] = useState<number>(10);
+  
+  // Validated future rescheduling dates (November 2026 context)
+  const [selectedRescheduleDay, setSelectedRescheduleDay] = useState<number>(10);
+  const [rescheduleMonth] = useState<string>('Nov 2026');
 
   // Step 4 Confirmation Status (Never automatically assumes success!)
+  // Possible states: 'retry_requested' | 'payment_pending' | 'debit_unconfirmed' | 'rescheduled_pending' | 'payment_successful' | 'payment_failed'
   const [confirmationStatus, setConfirmationStatus] = useState<ConfirmationStatus>('retry_requested');
-  const [isVerifying, setIsVerifying] = useState<boolean>(false);
 
   // Usability Evaluator State
   const [selectedTask, setSelectedTask] = useState<string>('TASK-1');
   const [participantId, setParticipantId] = useState<string>('USR-84102');
   const [taskOutcome, setTaskOutcome] = useState<'passed' | 'partial' | 'failed' | 'untested'>('untested');
+  
+  // 5-Point Usability Evaluation Checklist
+  const [evalChecklist, setEvalChecklist] = useState<UsabilityEvaluationChecklist>({
+    understandsWhyFailed: false,
+    understandsDebitStatus: false,
+    choosesBetweenRetryAndReschedule: false,
+    completesSelectedJourney: false,
+    understandsFinalPaymentStatus: false,
+  });
+
   const [confusionPoints, setConfusionPoints] = useState<string[]>([]);
   const [navigationErrors, setNavigationErrors] = useState<number>(0);
   const [researcherNotes, setResearcherNotes] = useState<string>('');
@@ -120,8 +133,8 @@ export const RecoveryPrototype: React.FC = () => {
   const handleResetPrototype = () => {
     setCurrentStep('overview');
     setSelectedOption('retry');
+    setSelectedRescheduleDay(10);
     setConfirmationStatus('retry_requested');
-    setIsVerifying(false);
   };
 
   // Step 1: Simulate Payment Failure
@@ -152,26 +165,14 @@ export const RecoveryPrototype: React.FC = () => {
     }
   };
 
-  // Simulate manual check or simulated bank verification (User/Researcher triggered)
-  const handleSimulateStatusCheck = () => {
-    setIsVerifying(true);
-    setTimeout(() => {
-      setIsVerifying(false);
-      setConfirmationStatus('payment_pending');
-    }, 1500);
-  };
-
-  const handleSimulateBankSuccess = () => {
-    setIsVerifying(true);
-    setTimeout(() => {
-      setIsVerifying(false);
-      setConfirmationStatus('payment_successful');
-    }, 1800);
-  };
-
   // Step 5: Proceed to Completion Summary
   const handleProceedToCompletion = () => {
     setCurrentStep('completion');
+  };
+
+  // Evaluator: Toggle checklist item
+  const handleToggleChecklist = (key: keyof UsabilityEvaluationChecklist) => {
+    setEvalChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   // Evaluator: Toggle confusion checkbox
@@ -201,6 +202,13 @@ export const RecoveryPrototype: React.FC = () => {
     setConfusionPoints([]);
     setNavigationErrors(0);
     setTaskOutcome('untested');
+    setEvalChecklist({
+      understandsWhyFailed: false,
+      understandsDebitStatus: false,
+      choosesBetweenRetryAndReschedule: false,
+      completesSelectedJourney: false,
+      understandsFinalPaymentStatus: false,
+    });
   };
 
   return (
@@ -221,7 +229,7 @@ export const RecoveryPrototype: React.FC = () => {
             SIP Recovery Assistant · Human-Centred Prototype
           </h2>
           <p className="mt-1 text-sm text-slate-600">
-            A clickable research prototype exploring how first-time investors understand and recover from a failed SIP instalment without false guarantees.
+            A clickable research prototype exploring how first-time investors understand and recover from an incomplete SIP instalment without false guarantees.
           </p>
         </div>
 
@@ -236,12 +244,12 @@ export const RecoveryPrototype: React.FC = () => {
         </div>
       </div>
 
-      {/* Safety & Scientific Boundary Disclaimer */}
+      {/* Safety & Simulation Disclaimer */}
       <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 text-xs text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm">
         <div className="flex items-center gap-2.5">
           <Info size={16} className="text-amber-700 shrink-0" />
           <span>
-            <strong>Research Environment Disclaimer: </strong> All accounts, failure scenarios, and retry actions are simulated. No live bank credentials, payment gateways, or real financial transactions are executed. Causal impact on retention remains under investigation (H1 status: <strong>NOT VALIDATED</strong>).
+            <strong>Illustrative Research Prototype: </strong> All investor profiles, SIP balances, and banking events are simulated for discovery research. No live bank credentials, payment gateways, or real financial transactions are connected. Causal retention impact has not been established (H1: <strong>NOT VALIDATED</strong>).
           </span>
         </div>
         <span className="rounded bg-amber-200/80 px-2.5 py-0.5 text-[10px] font-bold text-amber-900 shrink-0 uppercase tracking-wide">
@@ -331,8 +339,8 @@ export const RecoveryPrototype: React.FC = () => {
                   }`}
                 >
                   <div>
-                    <div className="font-bold text-rose-700">1. SIP Failure Screen</div>
-                    <div className="text-[11px] text-slate-500">States payment did not complete; no invented bank code</div>
+                    <div className="font-bold text-rose-700">1. SIP Failure Notice</div>
+                    <div className="text-[11px] text-slate-500">Payment did not complete; unconfirmed debit status</div>
                   </div>
                   <ChevronRight size={14} className="text-slate-400" />
                 </button>
@@ -364,7 +372,7 @@ export const RecoveryPrototype: React.FC = () => {
                 >
                   <div>
                     <div className="font-bold">3. Recovery Options</div>
-                    <div className="text-[11px] text-slate-500">Option A (Retry) vs Option B (Reschedule) neutrally explained</div>
+                    <div className="text-[11px] text-slate-500">Option A (Retry) vs Option B (Reschedule Date)</div>
                   </div>
                   <ChevronRight size={14} className="text-slate-400" />
                 </button>
@@ -379,8 +387,8 @@ export const RecoveryPrototype: React.FC = () => {
                   }`}
                 >
                   <div>
-                    <div className="font-bold">4. Confirmation Status</div>
-                    <div className="text-[11px] text-slate-500">Requested vs Pending vs Successful (No instant auto-success)</div>
+                    <div className="font-bold">4. Request Confirmation</div>
+                    <div className="text-[11px] text-slate-500">Retry Requested vs Pending (No auto-success)</div>
                   </div>
                   <ChevronRight size={14} className="text-slate-400" />
                 </button>
@@ -395,8 +403,8 @@ export const RecoveryPrototype: React.FC = () => {
                   }`}
                 >
                   <div>
-                    <div className="font-bold text-emerald-700">5. Completion Summary</div>
-                    <div className="text-[11px] text-slate-500">Clear next-step guidance &amp; return to SIP overview</div>
+                    <div className="font-bold text-emerald-700">5. Next Steps Summary</div>
+                    <div className="text-[11px] text-slate-500">Neutral policy summary &amp; return to SIP overview</div>
                   </div>
                   <ChevronRight size={14} className="text-slate-400" />
                 </button>
@@ -410,13 +418,13 @@ export const RecoveryPrototype: React.FC = () => {
                 <span>Simulate Usability Test Event</span>
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Trigger a simulated failed instalment on the user&apos;s active monthly SIP to initiate the 5-step test journey.
+                Trigger a simulated incomplete instalment on the user&apos;s active monthly SIP (05 Nov 2026).
               </p>
               <button
                 onClick={handleTriggerSimulatedFailure}
                 className="w-full rounded-lg bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800 transition shadow-sm mt-1"
               >
-                Trigger Simulated Failed Instalment
+                Trigger Simulated Incomplete Payment
               </button>
             </div>
           </div>
@@ -439,7 +447,7 @@ export const RecoveryPrototype: React.FC = () => {
                   <div className="flex-1 p-4 space-y-4 overflow-y-auto">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-[11px] text-slate-400 uppercase font-semibold">Total SIP Portfolio</div>
+                        <div className="text-[10px] text-slate-400 uppercase font-semibold">Total SIP Portfolio (Sample)</div>
                         <div className="text-2xl font-bold text-slate-900">₹24,000</div>
                       </div>
                       <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
@@ -454,25 +462,29 @@ export const RecoveryPrototype: React.FC = () => {
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-500">
-                        <div>Next Debit: <span className="font-semibold text-slate-800">05 Nov 2026</span></div>
-                        <div>Mandate: <span className="font-semibold text-slate-800">AutoPay (Active)</span></div>
+                        <div>Instalment Date: <span className="font-semibold text-slate-800">05 Nov 2026</span></div>
+                        <div>Mandate Status: <span className="font-semibold text-slate-800">Configured</span></div>
                       </div>
 
                       <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
                         <span className="text-emerald-700 font-semibold flex items-center gap-1">
                           <CheckCircle2 size={12} />
-                          4 of 4 Completed
+                          4 Past Instalments Logged
                         </span>
-                        <span className="text-slate-400">Streak: 4 Mos</span>
+                        <span className="text-slate-400">Monthly</span>
                       </div>
                     </div>
 
-                    <div className="pt-6">
+                    <div className="rounded-lg bg-slate-100/70 p-2.5 text-[10px] text-slate-500 text-center">
+                      * Illustrative sample investor data for discovery research.
+                    </div>
+
+                    <div className="pt-2">
                       <button
                         onClick={handleTriggerSimulatedFailure}
                         className="w-full rounded-xl border-2 border-dashed border-rose-300 bg-rose-50/70 p-3 text-xs font-bold text-rose-800 hover:bg-rose-100 transition text-center"
                       >
-                        ⚡ Simulate Failed Instalment
+                        ⚡ Simulate Incomplete Instalment
                       </button>
                     </div>
                   </div>
@@ -480,7 +492,7 @@ export const RecoveryPrototype: React.FC = () => {
 
                 {/* STEP 1: SIP FAILURE SCREEN */}
                 {currentStep === 'failure_screen' && (
-                  <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+                  <div className="flex-1 p-4 space-y-3.5 overflow-y-auto">
                     <div className="rounded-xl border border-rose-300 bg-rose-50 p-4 space-y-3">
                       <div className="flex items-center gap-2 text-rose-800 font-bold text-xs uppercase">
                         <AlertTriangle size={16} />
@@ -490,25 +502,26 @@ export const RecoveryPrototype: React.FC = () => {
                       <div>
                         <div className="text-lg font-extrabold text-slate-900">Payment Did Not Complete</div>
                         <div className="text-xs text-slate-600 mt-0.5">
-                          Instalment of ₹2,000 for UTI Nifty 50 Index Fund could not be processed.
+                          Scheduled instalment of ₹2,000 for UTI Nifty 50 Index Fund (05 Nov 2026).
                         </div>
                       </div>
 
-                      <div className="rounded-lg bg-white p-3 text-xs text-slate-700 border border-rose-200 space-y-1.5 leading-relaxed">
-                        <div className="font-semibold text-slate-900">What Happened:</div>
-                        <p className="text-[11px] text-slate-600">
-                          The scheduled monthly payment for this instalment was not completed. No money was deducted from your bank account for this attempt.
+                      {/* Payment Status Accuracy: Unconfirmed debit notice */}
+                      <div className="rounded-lg bg-amber-50/90 p-3 text-xs text-amber-950 border border-amber-200 space-y-1">
+                        <div className="font-semibold text-amber-900 flex items-center gap-1.5">
+                          <Clock size={13} className="text-amber-700 shrink-0" />
+                          <span>Debit Confirmation Unconfirmed</span>
+                        </div>
+                        <p className="text-[11px] text-amber-900/90 leading-relaxed">
+                          We haven&apos;t received confirmation of whether your bank account was debited. Please check your bank statement before attempting another payment.
                         </p>
                       </div>
 
-                      {/* Zero-penalty reassurance */}
-                      <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-2.5 text-[11px] text-emerald-950 space-y-1">
-                        <div className="font-bold flex items-center gap-1 text-emerald-900">
-                          <ShieldCheck size={13} className="text-emerald-700" />
-                          <span>Important Reassurance</span>
-                        </div>
-                        <p className="text-[11px] text-emerald-900/90 leading-normal">
-                          INDMoney does not charge penalty fees for an incomplete instalment. Your existing mutual fund units remain completely safe.
+                      {/* Neutral Guidance without unverified claims */}
+                      <div className="rounded-lg bg-white p-3 text-xs text-slate-700 border border-slate-200 space-y-1 leading-normal">
+                        <div className="font-semibold text-slate-900">General Guidance:</div>
+                        <p className="text-[11px] text-slate-600 leading-relaxed">
+                          Bank fee policies and potential return charges depend on your individual banking institution. Any mutual fund units allotted in previous instalments remain in your folio according to AMC records.
                         </p>
                       </div>
                     </div>
@@ -549,27 +562,27 @@ export const RecoveryPrototype: React.FC = () => {
                           <span>1. Account Balance</span>
                         </div>
                         <p className="text-[11px] text-slate-600 leading-normal">
-                          The available balance in your linked account may have been lower than the instalment amount at the moment of processing.
+                          The available balance in your linked account may have been lower than the instalment amount when processing was attempted.
                         </p>
                       </div>
 
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 space-y-1">
                         <div className="font-bold text-slate-900 flex items-center gap-1.5">
                           <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-                          <span>2. Bank Mandate Status</span>
+                          <span>2. Bank Mandate Configuration</span>
                         </div>
                         <p className="text-[11px] text-slate-600 leading-normal">
-                          Your bank mandate authorization may be undergoing maintenance, update, or may need re-confirmation.
+                          Your bank mandate authorization may have encountered authorization or bank-side maintenance.
                         </p>
                       </div>
 
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 space-y-1">
                         <div className="font-bold text-slate-900 flex items-center gap-1.5">
                           <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-                          <span>3. Temporary Banking Network Lag</span>
+                          <span>3. Temporary Payment-System Problem</span>
                         </div>
                         <p className="text-[11px] text-slate-600 leading-normal">
-                          Intermittent connectivity between the sponsor bank and clearing networks can occasionally delay transaction completion.
+                          Intermittent connectivity between payment clearing networks and your bank can delay confirmation.
                         </p>
                       </div>
                     </div>
@@ -581,9 +594,9 @@ export const RecoveryPrototype: React.FC = () => {
                         <span>What You Can Check Next:</span>
                       </div>
                       <ul className="list-disc list-inside text-[11px] text-blue-900/90 space-y-0.5">
-                        <li>Check your linked account balance in your bank app.</li>
-                        <li>Check if your bank sent an SMS about the transaction.</li>
-                        <li>Decide whether you want to retry now or reschedule.</li>
+                        <li>Check your bank statement or mobile banking app for recent debits.</li>
+                        <li>Check if your bank sent an SMS alert regarding this transaction.</li>
+                        <li>Decide whether you want to retry payment or select a future date.</li>
                       </ul>
                     </div>
 
@@ -604,7 +617,7 @@ export const RecoveryPrototype: React.FC = () => {
                       <span className="text-[10px] font-bold text-blue-700 uppercase">Step 3 of 5</span>
                       <h3 className="text-sm font-bold text-slate-900">Choose How You Want to Proceed</h3>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        Two neutral paths to handle this instalment. Choose what fits your current situation:
+                        Select an action below. Both options are explained neutrally:
                       </p>
                     </div>
 
@@ -622,15 +635,19 @@ export const RecoveryPrototype: React.FC = () => {
                           <Zap size={14} className="text-blue-700" />
                           Option A: Simulated Instant Retry
                         </span>
-                        <span className="rounded bg-blue-100 text-blue-800 text-[10px] font-bold px-1.5 py-0.5">
-                          Try Now
-                        </span>
+                        <input
+                          type="radio"
+                          name="recovery_choice"
+                          checked={selectedOption === 'retry'}
+                          onChange={() => setSelectedOption('retry')}
+                          className="text-blue-700"
+                        />
                       </div>
                       <p className="text-[11px] text-slate-600 leading-normal">
-                        Submit a payment request now using UPI or net banking.
+                        Submit a manual retry request for ₹2,000 using UPI or net banking.
                       </p>
                       <div className="text-[10px] text-slate-500 italic pt-0.5">
-                        *Note: Submitting a retry does not guarantee immediate NAV eligibility or bank processing speed.
+                        * Note: Submitting a retry does not guarantee processing success or NAV timing.
                       </div>
                     </div>
 
@@ -646,51 +663,74 @@ export const RecoveryPrototype: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                           <Calendar size={14} className="text-purple-700" />
-                          Option B: Reschedule to a Future Date
+                          Option B: Select Future Rescheduling Date
                         </span>
-                        <span className="rounded bg-purple-100 text-purple-800 text-[10px] font-bold px-1.5 py-0.5">
-                          Shift Date
-                        </span>
+                        <input
+                          type="radio"
+                          name="recovery_choice"
+                          checked={selectedOption === 'reschedule'}
+                          onChange={() => setSelectedOption('reschedule')}
+                          className="text-purple-700"
+                        />
                       </div>
                       <p className="text-[11px] text-slate-600 leading-normal">
-                        Select a future date (e.g. following your salary credit) without cancelling your ongoing mandate.
+                        Select a future date to align with your cash flow or salary deposit.
                       </p>
 
-                      {selectedOption === 'reschedule' && (
-                        <div className="pt-2 border-t border-purple-200 space-y-1.5">
-                          <label className="text-[10px] font-bold text-slate-700 block">Select Debit Day for this Month:</label>
-                          <div className="grid grid-cols-3 gap-1.5">
-                            {[8, 10, 15].map((day) => (
-                              <button
-                                key={day}
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setRescheduleDate(day);
-                                }}
-                                className={`py-1 text-center rounded text-xs font-semibold border ${
-                                  rescheduleDate === day
-                                    ? 'bg-purple-700 text-white border-purple-700'
-                                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-                                }`}
-                              >
-                                {day}th of month
-                              </button>
-                            ))}
-                          </div>
+                      {/* Interactive Date Picker with Future-Date Validation */}
+                      <div className="pt-2 border-t border-slate-200 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <label className="font-bold text-slate-700">Choose Next Debit Day ({rescheduleMonth}):</label>
+                          <span className="font-semibold text-purple-800 text-[10px]">
+                            Selected: {selectedRescheduleDay} {rescheduleMonth}
+                          </span>
                         </div>
-                      )}
 
-                      <div className="text-[10px] text-slate-500 italic pt-0.5">
-                        *Note: Shifting the debit date does not affect your investment value or future market price.
+                        <div className="grid grid-cols-5 gap-1">
+                          {[8, 10, 12, 15, 20].map((day) => (
+                            <button
+                              key={day}
+                              type="button"
+                              onClick={() => {
+                                setSelectedOption('reschedule');
+                                setSelectedRescheduleDay(day);
+                              }}
+                              className={`py-1.5 text-center rounded text-xs font-semibold border transition ${
+                                selectedOption === 'reschedule' && selectedRescheduleDay === day
+                                  ? 'bg-purple-700 text-white border-purple-700 shadow-sm'
+                                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                              }`}
+                            >
+                              {day}th
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="text-[10px] text-slate-500 italic pt-0.5 leading-normal">
+                        * Note: Changing instalment date may alter investment timing and applicable NAV. Does not guarantee future instalment success. Subject to bank mandate configuration.
+                      </div>
+                    </div>
+
+                    {/* Pre-Confirmation Display */}
+                    <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs text-slate-700 space-y-1">
+                      <div className="font-bold text-[11px] text-slate-900">Selection Summary:</div>
+                      <div className="text-[11px] text-slate-600">
+                        {selectedOption === 'retry' ? (
+                          <span>Mode: <strong>Immediate Retry Request</strong> for ₹2,000</span>
+                        ) : (
+                          <span>Mode: <strong>Rescheduling to {selectedRescheduleDay} {rescheduleMonth}</strong></span>
+                        )}
                       </div>
                     </div>
 
                     <button
                       onClick={() => handleSubmitRecoveryChoice(selectedOption)}
-                      className="w-full rounded-xl bg-blue-700 py-3 text-xs font-bold text-white hover:bg-blue-800 transition shadow-sm mt-2"
+                      className="w-full rounded-xl bg-blue-700 py-3 text-xs font-bold text-white hover:bg-blue-800 transition shadow-sm mt-1"
                     >
-                      Confirm {selectedOption === 'retry' ? 'Simulated Instant Retry' : `Rescheduling to ${rescheduleDate}th`}
+                      {selectedOption === 'retry'
+                        ? 'Confirm Retry Submission'
+                        : `Confirm Rescheduling to ${selectedRescheduleDay} ${rescheduleMonth}`}
                     </button>
                   </div>
                 )}
@@ -702,7 +742,7 @@ export const RecoveryPrototype: React.FC = () => {
                       <span className="text-[10px] font-bold text-blue-700 uppercase">Step 4 of 5</span>
                       <h3 className="text-sm font-bold text-slate-900">Request Confirmation</h3>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        Verifying transaction status with simulated bank clearing network:
+                        Current status of your simulated request:
                       </p>
                     </div>
 
@@ -716,14 +756,22 @@ export const RecoveryPrototype: React.FC = () => {
                           {confirmationStatus === 'payment_pending' && (
                             <RefreshCw size={18} className="text-amber-600 animate-spin" />
                           )}
+                          {confirmationStatus === 'debit_unconfirmed' && (
+                            <AlertTriangle size={18} className="text-amber-700" />
+                          )}
                           {confirmationStatus === 'payment_successful' && (
                             <CheckCircle2 size={18} className="text-emerald-600" />
                           )}
+                          {confirmationStatus === 'payment_failed' && (
+                            <XCircle size={18} className="text-rose-600" />
+                          )}
 
                           <span className="font-bold text-xs text-slate-900">
-                            {confirmationStatus === 'retry_requested' && 'Retry Request Recorded'}
-                            {confirmationStatus === 'payment_pending' && 'Payment Verification Pending'}
-                            {confirmationStatus === 'payment_successful' && 'Payment Verified (Simulated)'}
+                            {confirmationStatus === 'retry_requested' && 'Retry Request Submitted — Outcome Pending'}
+                            {confirmationStatus === 'payment_pending' && 'Payment Verification In Progress'}
+                            {confirmationStatus === 'debit_unconfirmed' && 'Debit Unconfirmed — Check Statement'}
+                            {confirmationStatus === 'payment_successful' && 'Payment Verified (Simulated Outcome)'}
+                            {confirmationStatus === 'payment_failed' && 'Retry Unsuccessful (Simulated Outcome)'}
                           </span>
                         </div>
 
@@ -731,12 +779,17 @@ export const RecoveryPrototype: React.FC = () => {
                         <div className="text-xs text-slate-600 leading-relaxed bg-white p-3 rounded-lg border border-slate-200">
                           {confirmationStatus === 'retry_requested' && (
                             <div>
-                              Your retry request has been submitted to your bank. Verification is in progress. <strong>This does not mean funds have cleared yet.</strong>
+                              Your retry request has been submitted to your bank. <strong>Verification is pending. Submitting a request does not mean payment has completed.</strong>
                             </div>
                           )}
                           {confirmationStatus === 'payment_pending' && (
                             <div>
-                              We are awaiting an official callback confirmation from your bank clearing system. Most banks respond within 5–15 minutes.
+                              We are awaiting an official status callback from your bank clearing system. Please allow time for processing.
+                            </div>
+                          )}
+                          {confirmationStatus === 'debit_unconfirmed' && (
+                            <div>
+                              We haven&apos;t received confirmation of whether your bank account was debited. Please check your bank statement before attempting another payment.
                             </div>
                           )}
                           {confirmationStatus === 'payment_successful' && (
@@ -744,27 +797,15 @@ export const RecoveryPrototype: React.FC = () => {
                               Simulated bank clearance confirmed. Your instalment of ₹2,000 has been marked for mutual fund allocation.
                             </div>
                           )}
+                          {confirmationStatus === 'payment_failed' && (
+                            <div className="text-rose-900">
+                              The bank clearing system reported that the retry could not be processed. No funds were cleared.
+                            </div>
+                          )}
                         </div>
 
-                        {/* Testing Controls: Allows researcher to test user tolerance for pending states */}
-                        <div className="pt-2 border-t border-slate-200 space-y-2">
-                          <div className="text-[10px] uppercase font-bold text-slate-400">Researcher Testing Controls:</div>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <button
-                              onClick={handleSimulateStatusCheck}
-                              disabled={isVerifying}
-                              className="py-1.5 px-2 rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 text-[11px] font-medium"
-                            >
-                              {isVerifying ? 'Checking...' : 'Check Status (Pending)'}
-                            </button>
-                            <button
-                              onClick={handleSimulateBankSuccess}
-                              disabled={isVerifying}
-                              className="py-1.5 px-2 rounded border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-[11px] font-medium"
-                            >
-                              Simulate Success
-                            </button>
-                          </div>
+                        <div className="text-[10px] text-slate-500 italic">
+                          * Researcher controls for simulating different payment outcomes are located in the separate Researcher Evaluation view.
                         </div>
                       </div>
                     )}
@@ -774,10 +815,15 @@ export const RecoveryPrototype: React.FC = () => {
                       <div className="rounded-xl border border-purple-200 bg-purple-50/60 p-4 space-y-3">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 size={18} className="text-purple-700" />
-                          <span className="font-bold text-xs text-purple-900">Date Reschedule Recorded</span>
+                          <span className="font-bold text-xs text-purple-900">Date Reschedule Request Recorded</span>
                         </div>
-                        <div className="text-xs text-slate-700 leading-relaxed bg-white p-3 rounded-lg border border-purple-200">
-                          Your debit date for this instalment has been moved to the <strong>{rescheduleDate}th of this month</strong>. Your active AutoPay mandate remains untouched.
+                        <div className="text-xs text-slate-700 leading-relaxed bg-white p-3 rounded-lg border border-purple-200 space-y-1">
+                          <p>
+                            Your request to adjust this instalment to the <strong>{selectedRescheduleDay} {rescheduleMonth}</strong> has been recorded.
+                          </p>
+                          <p className="text-[11px] text-slate-500">
+                            Subject to your bank mandate configuration and clearance schedules. Applicable NAV will depend on the final order execution date.
+                          </p>
                         </div>
                       </div>
                     )}
@@ -794,15 +840,15 @@ export const RecoveryPrototype: React.FC = () => {
                 {/* STEP 5: COMPLETION SUMMARY */}
                 {currentStep === 'completion' && (
                   <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center space-y-1">
-                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 mb-1">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center space-y-1">
+                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-700 mb-1">
                         <Award size={20} />
                       </div>
                       <h3 className="text-sm font-bold text-slate-900">Next Steps Summary</h3>
-                      <p className="text-[11px] text-emerald-800 font-medium">
+                      <p className="text-[11px] text-slate-600 font-medium">
                         {selectedOption === 'retry'
-                          ? 'Instant Retry Request Processed'
-                          : `Instalment Scheduled for ${rescheduleDate}th`}
+                          ? 'Retry Request Submitted — Outcome Pending'
+                          : `Instalment Rescheduled to ${selectedRescheduleDay} ${rescheduleMonth}`}
                       </p>
                     </div>
 
@@ -820,18 +866,24 @@ export const RecoveryPrototype: React.FC = () => {
                         <div className="flex justify-between border-b border-slate-100 pb-1">
                           <span>Action Taken:</span>
                           <span className="font-semibold text-slate-800">
-                            {selectedOption === 'retry' ? 'Simulated Instant Retry' : `Rescheduled to ${rescheduleDate}th`}
+                            {selectedOption === 'retry' ? 'Simulated Instant Retry' : `Rescheduled to ${selectedRescheduleDay} ${rescheduleMonth}`}
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-100 pb-1">
+                          <span>Payment Status:</span>
+                          <span className="font-semibold text-slate-800">
+                            {confirmationStatus === 'payment_successful' ? 'Verified Successful' : 'Outcome Pending Verification'}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Next Regular Debit:</span>
+                          <span>Next Regular Scheduled Cycle:</span>
                           <span className="font-semibold text-slate-800">05 Dec 2026</span>
                         </div>
                       </div>
                     </div>
 
                     <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-[11px] text-slate-600 leading-relaxed">
-                      <strong>Future Instalments: </strong> Your recurring AutoPay mandate remains active. You can pause, modify, or check your mandate in your SIP settings anytime.
+                      <strong>Policy Note: </strong> Your ongoing SIP status depends on your bank&apos;s mandate records. Please monitor your bank statements for debit confirmations.
                     </div>
 
                     <button
@@ -846,7 +898,7 @@ export const RecoveryPrototype: React.FC = () => {
             </div>
           </div>
 
-          {/* Right: Evaluator Quick Notes & Observations */}
+          {/* Right: Observer Information Card */}
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
             <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
               <div>
@@ -860,23 +912,23 @@ export const RecoveryPrototype: React.FC = () => {
 
             <div className="space-y-3 text-xs leading-relaxed text-slate-600">
               <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
-                <div className="font-bold text-slate-900 text-[11px]">1. Absence of Invented Bank Codes:</div>
+                <div className="font-bold text-slate-900 text-[11px]">1. Unconfirmed Debit Understanding:</div>
                 <p className="text-[11px] text-slate-600 mt-0.5">
-                  Does the user appreciate honest uncertainty over a fake &ldquo;Code 03&rdquo; label? Check if they seek external confirmation.
+                  Does the user understand that debit status is unconfirmed, and do they plan to check their bank statement?
                 </p>
               </div>
 
               <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
-                <div className="font-bold text-slate-900 text-[11px]">2. Pending State Comfort:</div>
+                <div className="font-bold text-slate-900 text-[11px]">2. Pending State Perception:</div>
                 <p className="text-[11px] text-slate-600 mt-0.5">
-                  When Step 4 shows &ldquo;Retry Requested / Pending&rdquo;, does the user understand funds are not instantly confirmed?
+                  When Step 4 shows &ldquo;Retry Request Submitted — Outcome Pending&rdquo;, does the user recognize that payment is not yet confirmed?
                 </p>
               </div>
 
               <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
-                <div className="font-bold text-slate-900 text-[11px]">3. Neutral Framing:</div>
+                <div className="font-bold text-slate-900 text-[11px]">3. Rescheduling Clarity:</div>
                 <p className="text-[11px] text-slate-600 mt-0.5">
-                  Verify that neither retry nor rescheduling was perceived as an artificial urgency tactic.
+                  Does the user grasp that rescheduling alters future debit timing without making false guarantees about outcomes?
                 </p>
               </div>
             </div>
@@ -885,21 +937,102 @@ export const RecoveryPrototype: React.FC = () => {
               onClick={() => setActiveTab('evaluator')}
               className="w-full rounded-lg border border-blue-200 bg-blue-50 py-2 text-xs font-bold text-blue-800 hover:bg-blue-100 transition"
             >
-              Open Full Researcher Evaluator View →
+              Open Researcher Evaluator &amp; Controls →
             </button>
           </div>
         </div>
       )}
 
-      {/* TAB 2: RESEARCHER USABILITY EVALUATION VIEW */}
+      {/* TAB 2: RESEARCHER USABILITY EVALUATION & SIMULATION CONTROLS VIEW */}
       {activeTab === 'evaluator' && (
         <div className="space-y-6">
+          {/* SEPARATE RESEARCHER-ONLY TESTING CONTROLS */}
+          <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-4 shadow-sm space-y-3">
+            <div className="flex items-center justify-between border-b border-purple-200/60 pb-2">
+              <div className="flex items-center gap-2">
+                <Settings size={16} className="text-purple-800" />
+                <h4 className="font-bold text-xs uppercase tracking-wider text-purple-900">
+                  Researcher-Only Testing Controls (Not Exposed to Investors)
+                </h4>
+              </div>
+              <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded">
+                Observer Console
+              </span>
+            </div>
+
+            <p className="text-xs text-purple-950 leading-relaxed">
+              Use these controls during moderated sessions to simulate different bank clearing responses on the active prototype. Test participant comprehension of pending, unconfirmed, failed, and successful states.
+            </p>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setConfirmationStatus('retry_requested')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                  confirmationStatus === 'retry_requested'
+                    ? 'bg-blue-700 text-white border-blue-700 shadow-sm'
+                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                Simulate: Retry Requested
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setConfirmationStatus('payment_pending')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                  confirmationStatus === 'payment_pending'
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
+                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                Simulate: Payment Pending
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setConfirmationStatus('debit_unconfirmed')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                  confirmationStatus === 'debit_unconfirmed'
+                    ? 'bg-amber-700 text-white border-amber-700 shadow-sm'
+                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                Simulate: Debit Unconfirmed
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setConfirmationStatus('payment_failed')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                  confirmationStatus === 'payment_failed'
+                    ? 'bg-rose-700 text-white border-rose-700 shadow-sm'
+                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                Simulate: Bank Reject / Fail
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setConfirmationStatus('payment_successful')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                  confirmationStatus === 'payment_successful'
+                    ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
+                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                Simulate: Bank Success
+              </button>
+            </div>
+          </div>
+
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
             <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Usability Testing Protocol</span>
                 <h3 className="font-bold text-base text-slate-900 mt-0.5">Researcher Evaluation Console</h3>
-                <p className="text-xs text-slate-500">Record observations, confusion points, and completion metrics during 1-on-1 test sessions.</p>
+                <p className="text-xs text-slate-500">Record observations, 5-point checklist scores, and qualitative feedback.</p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -969,7 +1102,7 @@ export const RecoveryPrototype: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Evaluator Observation Capture Form */}
+                  {/* Evaluator Observation Capture Form with 5-Item Checklist */}
                   <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-4 text-xs">
                     <div>
                       <label className="font-bold text-slate-900 block mb-1.5">Task Outcome:</label>
@@ -1010,16 +1143,74 @@ export const RecoveryPrototype: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* 5-Item Evaluation Checklist */}
+                    <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 space-y-2">
+                      <label className="font-bold text-slate-900 block text-[11px] uppercase tracking-wide">
+                        5-Item Researcher Evaluation Checklist:
+                      </label>
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={evalChecklist.understandsWhyFailed}
+                            onChange={() => handleToggleChecklist('understandsWhyFailed')}
+                            className="rounded border-slate-300 text-blue-700 focus:ring-blue-600"
+                          />
+                          <span>1. Understood why the instalment failed</span>
+                        </label>
+
+                        <label className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={evalChecklist.understandsDebitStatus}
+                            onChange={() => handleToggleChecklist('understandsDebitStatus')}
+                            className="rounded border-slate-300 text-blue-700 focus:ring-blue-600"
+                          />
+                          <span>2. Understood whether money was debited (unconfirmed status)</span>
+                        </label>
+
+                        <label className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={evalChecklist.choosesBetweenRetryAndReschedule}
+                            onChange={() => handleToggleChecklist('choosesBetweenRetryAndReschedule')}
+                            className="rounded border-slate-300 text-blue-700 focus:ring-blue-600"
+                          />
+                          <span>3. Understood difference between retry and date rescheduling</span>
+                        </label>
+
+                        <label className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={evalChecklist.completesSelectedJourney}
+                            onChange={() => handleToggleChecklist('completesSelectedJourney')}
+                            className="rounded border-slate-300 text-blue-700 focus:ring-blue-600"
+                          />
+                          <span>4. Successfully completed the selected recovery journey</span>
+                        </label>
+
+                        <label className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={evalChecklist.understandsFinalPaymentStatus}
+                            onChange={() => handleToggleChecklist('understandsFinalPaymentStatus')}
+                            className="rounded border-slate-300 text-blue-700 focus:ring-blue-600"
+                          />
+                          <span>5. Understood final payment status (distinguishes pending from success)</span>
+                        </label>
+                      </div>
+                    </div>
+
                     {/* Observed Confusion Flags */}
                     <div>
                       <label className="font-bold text-slate-900 block mb-1.5">Observed Confusion Points:</label>
                       <div className="space-y-1.5">
                         {[
-                          'Looked for an official bank failure code',
-                          'Assumed retry would be instantly successful',
-                          'Unsure if bank charges an ECS penalty',
-                          'Hesitated between retry vs rescheduling',
-                          'Unclear what happens to future monthly instalments'
+                          'Assumed money was definitely deducted',
+                          'Expected immediate payment success after retry',
+                          'Unsure if their bank will charge a return fee',
+                          'Hesitated selecting between retry vs date rescheduling',
+                          'Unclear about how rescheduling affects future debits'
                         ].map((point) => (
                           <label key={point} className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-700">
                             <input
@@ -1062,7 +1253,7 @@ export const RecoveryPrototype: React.FC = () => {
                       <textarea
                         value={researcherNotes}
                         onChange={(e) => setResearcherNotes(e.target.value)}
-                        placeholder="e.g. Participant stated: 'I was relieved there is no fine, but I wonder if my bank will charge an ECS fee...'"
+                        placeholder="e.g. Participant stated: 'I appreciated that the app did not make false promises about immediate payment success...'"
                         rows={2}
                         className="w-full rounded-lg border border-slate-300 p-2 text-xs text-slate-800 focus:border-blue-600 focus:outline-none"
                       />
@@ -1180,25 +1371,25 @@ export const RecoveryPrototype: React.FC = () => {
                 <tbody className="divide-y divide-slate-100 text-slate-600">
                   <tr className="hover:bg-slate-50/50">
                     <td className="py-3 px-3 font-medium text-slate-900">
-                      <div className="font-bold text-blue-900">Screen 1: Zero-Penalty Reassurance</div>
-                      <div className="text-[11px] text-slate-500">Explicit &ldquo;₹0 INDMoney Fee &amp; Zero Credit Impact&rdquo; banner</div>
+                      <div className="font-bold text-blue-900">Screen 1: Debit Status Transparency</div>
+                      <div className="text-[11px] text-slate-500">Unconfirmed debit alert advising bank statement check</div>
                     </td>
                     <td className="py-3 px-3">
                       <span className="rounded bg-rose-100 text-rose-800 px-1.5 py-0.5 text-[10px] font-bold">PAIN-03</span>
-                      <div className="text-[11px] font-medium text-slate-700 mt-0.5">Bank Bounce Fines &amp; Penalties</div>
+                      <div className="text-[11px] font-medium text-slate-700 mt-0.5">Bank Bounce &amp; Deduction Confusion</div>
                     </td>
                     <td className="py-3 px-3 font-mono text-[11px]">
-                      <span className="font-semibold text-blue-700">IND-08924</span>, <span className="font-semibold text-blue-700">IND-51705</span>, <span className="font-semibold text-blue-700">IND-34882</span>, <span className="text-slate-500">EVD-002</span>
+                      <span className="font-semibold text-blue-700">IND-08924</span>, <span className="font-semibold text-blue-700">IND-51705</span>, <span className="font-semibold text-blue-700">IND-34882</span>
                     </td>
                     <td className="py-3 px-3 text-[11px] leading-relaxed">
-                      De-catastrophizes user fear of punitive bank charges (₹295–₹590), preventing emotional panic and immediate app uninstallation.
+                      Prevents duplicate payment attempts by clearly stating that debit status is unconfirmed until the user checks their statement.
                     </td>
                   </tr>
 
                   <tr className="hover:bg-slate-50/50">
                     <td className="py-3 px-3 font-medium text-slate-900">
                       <div className="font-bold text-blue-900">Screen 2: Honest Failure Possibilities</div>
-                      <div className="text-[11px] text-slate-500">Illustrative possibilities without invented bank codes</div>
+                      <div className="text-[11px] text-slate-500">Illustrative possibilities without manufactured bank codes</div>
                     </td>
                     <td className="py-3 px-3">
                       <span className="rounded bg-rose-100 text-rose-800 px-1.5 py-0.5 text-[10px] font-bold">PAIN-02</span>
@@ -1208,7 +1399,7 @@ export const RecoveryPrototype: React.FC = () => {
                       <span className="font-semibold text-blue-700">IND-25733</span>, <span className="font-semibold text-blue-700">IND-27496</span>, <span className="font-semibold text-blue-700">IND-31462</span>
                     </td>
                     <td className="py-3 px-3 text-[11px] leading-relaxed">
-                      Replaces opaque silence with clear, honest potential explanations and actionable checklist items for the user.
+                      Replaces silent failure with honest potential causes and actionable checklist items for the user.
                     </td>
                   </tr>
 
@@ -1232,7 +1423,7 @@ export const RecoveryPrototype: React.FC = () => {
                   <tr className="hover:bg-slate-50/50">
                     <td className="py-3 px-3 font-medium text-slate-900">
                       <div className="font-bold text-blue-900">Screen 3: Future Date Rescheduling</div>
-                      <div className="text-[11px] text-slate-500">Shift permanent debit date without mandate cancellation</div>
+                      <div className="text-[11px] text-slate-500">Validated date picker with cash-flow alignment</div>
                     </td>
                     <td className="py-3 px-3">
                       <span className="rounded bg-rose-100 text-rose-800 px-1.5 py-0.5 text-[10px] font-bold">PAIN-06</span>
@@ -1242,14 +1433,14 @@ export const RecoveryPrototype: React.FC = () => {
                       <span className="font-semibold text-blue-700">IND-15499</span>, <span className="font-semibold text-blue-700">IND-46721</span>, <span className="text-slate-500">EVD-003</span>
                     </td>
                     <td className="py-3 px-3 text-[11px] leading-relaxed">
-                      Solves salary timing mismatches without forcing full mandate deletion and a 10-day NACH re-approval period.
+                      Explains that shifting instalment date alters investment timing and NAV, without making unverified mandate guarantees.
                     </td>
                   </tr>
 
                   <tr className="hover:bg-slate-50/50">
                     <td className="py-3 px-3 font-medium text-slate-900">
                       <div className="font-bold text-blue-900">Screen 4: Transparent Pending States</div>
-                      <div className="text-[11px] text-slate-500">Explicit &ldquo;Requested vs Pending vs Successful&rdquo; breakdown</div>
+                      <div className="text-[11px] text-slate-500">Outcome pending state (never assumes instant success)</div>
                     </td>
                     <td className="py-3 px-3">
                       <span className="rounded bg-rose-100 text-rose-800 px-1.5 py-0.5 text-[10px] font-bold">PAIN-04</span>
@@ -1265,8 +1456,8 @@ export const RecoveryPrototype: React.FC = () => {
 
                   <tr className="hover:bg-slate-50/50">
                     <td className="py-3 px-3 font-medium text-slate-900">
-                      <div className="font-bold text-blue-900">Screen 5: Mandate Lifecycle Clarity</div>
-                      <div className="text-[11px] text-slate-500">Explains ongoing mandate state and next month schedule</div>
+                      <div className="font-bold text-blue-900">Screen 5: Neutral Policy Guidance</div>
+                      <div className="text-[11px] text-slate-500">Explains ongoing mandate state without unsupported guarantees</div>
                     </td>
                     <td className="py-3 px-3">
                       <span className="rounded bg-rose-100 text-rose-800 px-1.5 py-0.5 text-[10px] font-bold">PAIN-01</span>

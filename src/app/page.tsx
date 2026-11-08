@@ -25,6 +25,37 @@ export default function Home() {
   const [themes, setThemes] = useState<ThemeItem[]>(INITIAL_THEMES);
   const [isReportOpen, setIsReportOpen] = useState<boolean>(false);
 
+  // Sync activeSection with URL search parameter
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const sectionParam = params.get('section') as NavSection;
+      const validSections: NavSection[] = [
+        'overview',
+        'review_workspace',
+        'evidence',
+        'themes',
+        'opportunities',
+        'h1_workspace',
+        'prototype',
+        'survey',
+        'decision_log'
+      ];
+      if (sectionParam && validSections.includes(sectionParam)) {
+        setActiveSection(sectionParam);
+      }
+    }
+  }, []);
+
+  const handleSelectSection = (section: NavSection) => {
+    setActiveSection(section);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('section', section);
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
+
   // Update Review Status on an evidence item
   const handleUpdateStatus = (id: string, newStatus: HumanReviewStatus) => {
     setEvidenceItems((prev) =>
@@ -130,7 +161,7 @@ export default function Home() {
         {/* Left Sidebar Navigation */}
         <Navigation
           activeSection={activeSection}
-          onSelectSection={(sec) => setActiveSection(sec)}
+          onSelectSection={handleSelectSection}
           evidenceCount={evidenceItems.length}
           themeCount={themes.length}
           opportunityCount={INITIAL_OPPORTUNITIES.length}
@@ -140,7 +171,7 @@ export default function Home() {
         <main className="space-y-6">
           {activeSection === 'overview' && (
             <OverviewSection
-              onNavigate={(sec) => setActiveSection(sec)}
+              onNavigate={handleSelectSection}
               evidenceCount={evidenceItems.length}
               themeCount={themes.length}
               opportunityCount={INITIAL_OPPORTUNITIES.length}
