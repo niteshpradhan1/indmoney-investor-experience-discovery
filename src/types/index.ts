@@ -388,3 +388,39 @@ export interface CsvImportResult {
   duplicates: CsvDuplicateRecord[];
   importedEvents: TelemetryEventRecord[];
 }
+
+// ==============================================================================
+// PHASE 6: PROTOTYPE & USABILITY EVALUATION TYPES
+// ==============================================================================
+
+export type PrototypeStep =
+  | 'overview'            // Base SIP portfolio dashboard
+  | 'failure_screen'      // 1. SIP failure screen (payment did not complete)
+  | 'understand_failure'  // 2. Understand failure (illustrative possibilities & checklist)
+  | 'recovery_options'    // 3. Recovery options (Option A: retry vs Option B: reschedule)
+  | 'confirmation'        // 4. Confirmation (distinguishing requested, pending, success)
+  | 'completion';         // 5. Completion (next steps summary & return)
+
+export type ConfirmationStatus = 'retry_requested' | 'payment_pending' | 'rescheduled_pending' | 'payment_successful';
+
+export interface UsabilityTask {
+  id: string;
+  taskNumber: number;
+  title: string;
+  scenario: string;
+  instruction: string;
+  acceptanceCriteria: string[];
+  neutralPrompt: string;
+}
+
+export interface UsabilityObservation {
+  id: string;
+  participantId: string;
+  taskId: string;
+  taskOutcome: 'passed' | 'partial' | 'failed' | 'untested';
+  timeSpentSeconds: number;
+  observedConfusion: string[];
+  navigationErrors: number;
+  qualitativeNotes: string;
+  recordedAt: string;
+}
