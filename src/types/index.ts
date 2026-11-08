@@ -289,3 +289,102 @@ export interface HypothesisValidationSynthesis {
   }>;
   remainingValidationQuestions: string[];
 }
+
+// ==============================================================================
+// PHASE 5: RESEARCH QUALITY & EVIDENCE GOVERNANCE TYPES
+// ==============================================================================
+
+export type EvidenceTier =
+  | 'Tier 1: Direct'
+  | 'Tier 2: Supporting'
+  | 'Tier 3: Contextual'
+  | 'Contradictory';
+
+export type H1RelevanceRating =
+  | 'Directly Supports H1'
+  | 'Indirectly Related'
+  | 'Contradicts H1'
+  | 'Not Relevant';
+
+export type InsightValidationStatus =
+  | 'Draft'
+  | 'Under Review'
+  | 'Validated'
+  | 'Rejected';
+
+export type ContradictoryCategory =
+  | 'Discretionary Spending'
+  | 'Insufficient Balance'
+  | 'Changing Investment Priorities'
+  | 'Unrelated Technical Issue';
+
+export interface QualitativeInsight {
+  id: string; // e.g. "INS-001"
+  participantId: string; // e.g. "INV-001"
+  originalStatement: string; // Original verbatim quote or event ref
+  researcherInterpretation: string; // Deep PM deduction
+  evidenceTier: EvidenceTier;
+  h1Relevance: H1RelevanceRating;
+  validationStatus: InsightValidationStatus;
+  researcherApproval: {
+    isApproved: boolean;
+    approvedBy: string;
+    approvedAt: string | null;
+    notes?: string;
+  };
+  sourceType: 'Actual Interview' | 'Demonstration Benchmark';
+  linkedThemeId?: string; // e.g. "THEME-P3"
+  contradictoryCategory?: ContradictoryCategory;
+  createdAt: string;
+}
+
+export interface ContradictoryEvidenceRecord {
+  id: string;
+  category: ContradictoryCategory;
+  title: string;
+  description: string;
+  observedFrequency: string; // e.g. "High (18% of pauses)"
+  customerQuoteOrBehavior: string;
+  h1ImpactAssessment: string;
+  counterMitigationOrIsolation: string;
+  participantRef?: string;
+}
+
+export interface TelemetryDataDictionaryItem {
+  name: TelemetryEventName;
+  label: string;
+  stage: 'Creation' | 'Mandate Setup' | 'Execution' | 'Communication' | 'Recovery' | 'Settlement' | 'Lifecycle';
+  description: string;
+  triggerCondition: string;
+  requiredProperties: string[];
+  optionalProperties: string[];
+  timestampFormat: string; // e.g. "ISO 8601 UTC (YYYY-MM-DDTHH:mm:ssZ)"
+  participantIdentifierFormat: string; // e.g. "USR-[0-9]{5}"
+  associatedErrorCodes?: Array<{ code: string; meaning: string; entity: 'NPCI' | 'Bank' | 'INDMoney' }>;
+  exampleJson: string;
+}
+
+export interface CsvImportError {
+  rowNumber: number;
+  field: string;
+  message: string;
+  rawSnippet: string;
+}
+
+export interface CsvDuplicateRecord {
+  rowNumber: number;
+  eventId: string;
+  userId: string;
+  eventName: string;
+  reason: string;
+}
+
+export interface CsvImportResult {
+  totalRowsProcessed: number;
+  validRowsCount: number;
+  duplicatesCount: number;
+  errorCount: number;
+  errors: CsvImportError[];
+  duplicates: CsvDuplicateRecord[];
+  importedEvents: TelemetryEventRecord[];
+}

@@ -26,7 +26,13 @@ import {
   Layers,
   ChevronDown,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  BookOpen,
+  CheckSquare,
+  Search,
+  Sliders,
+  Database,
+  Info
 } from 'lucide-react';
 import {
   InterviewParticipant,
@@ -34,10 +40,25 @@ import {
   SIPContinuityStatus,
   TelemetryEventRecord,
   TelemetryEventName,
-  CohortAnalysisSummary
+  EvidenceTier,
+  H1RelevanceRating,
+  InsightValidationStatus,
+  QualitativeInsight,
+  ContradictoryCategory,
+  ContradictoryEvidenceRecord,
+  TelemetryDataDictionaryItem,
+  CsvImportError,
+  CsvDuplicateRecord,
+  CsvImportResult
 } from '../types';
-import { DISCOVERY_QA_DATA, DiscoveryQAItem } from '../data/discoveryQaData';
-import { PHASE_4_PAIN_POINT_THEMES, SAMPLE_BENCHMARK_TELEMETRY } from '../data/phase5Data';
+import { DISCOVERY_QA_DATA } from '../data/discoveryQaData';
+import {
+  PHASE_4_PAIN_POINT_THEMES,
+  SAMPLE_BENCHMARK_TELEMETRY,
+  TELEMETRY_DATA_DICTIONARY,
+  INITIAL_CONTRADICTORY_EVIDENCE,
+  INITIAL_QUALITATIVE_INSIGHTS
+} from '../data/phase5Data';
 
 // Standard 11 Telemetry Event Names
 const EXPECTED_TELEMETRY_EVENTS: Array<{ name: TelemetryEventName; label: string; stage: string; description: string }> = [
@@ -75,10 +96,10 @@ const INITIAL_PARTICIPANTS: InterviewParticipant[] = [
     verbatimQuotes: [
       {
         id: 'VQ-01',
-        quote: 'I stopped my SIP after SBI charged me ₹295 penalty because salary came two days after the debit date.',
+        quote: 'I stopped my SIP in September after SBI charged me ₹295 penalty because salary came two days after the debit date.',
         questionId: 'Q1',
         linkedThemeId: 'THEME-P3',
-        researcherInterpretation: 'Confirms Theme 3: Bank bounce penalty drives immediate churn for novice investors.'
+        researcherInterpretation: 'Confirms that punitive bank ECS bounce charges trigger immediate loss aversion and app uninstallation.'
       }
     ],
     createdAt: '2026-10-28T14:00:00Z'
@@ -102,10 +123,10 @@ const INITIAL_PARTICIPANTS: InterviewParticipant[] = [
     verbatimQuotes: [
       {
         id: 'VQ-02',
-        quote: 'AutoPay failed, but my HDFC account had plenty of money. The app never even sent a push alert.',
+        quote: 'AutoPay failed, but my HDFC account had plenty of money. The app never even sent a push alert or warning.',
         questionId: 'Q1',
         linkedThemeId: 'THEME-P2',
-        researcherInterpretation: 'Confirms Theme 2: Silent mandate failure occurs even with sufficient liquidity.'
+        researcherInterpretation: 'Demonstrates silent mandate drop-off where automated bank presentation fails despite adequate balance.'
       }
     ],
     createdAt: '2026-10-29T10:30:00Z'
@@ -121,17 +142,17 @@ const INITIAL_PARTICIPANTS: InterviewParticipant[] = [
     interviewNotes: 'Switched primary salary bank from ICICI to Axis Bank. Discovered no way to modify existing mandate bank without cancelling the SIP. Paused SIP to prevent deductions from dormant account.',
     researcherObservations: 'Lack of mandate bank-switching functionality forces investors to pause or cancel healthy compounding habits.',
     responses: {
-      Q1: 'I changed my job and got an Axis salary account. I tried to change my SIP bank in INDMoney, but there was no option to update the mandate bank.',
+      Q1: 'I changed my job and got an Axis salary account. I tried to change my SIP bank in INDMoney, but there was no option to update the mandate bank without cancelling the SIP completely.',
       Q2: 'I had to pause the SIP because I was keeping zero balance in my old ICICI account and didn’t want bounce fees.',
       Q8: 'We should be able to migrate our mandate to a new bank with one OTP without having to cancel the SIP and lose folio continuity.'
     },
     verbatimQuotes: [
       {
         id: 'VQ-03',
-        quote: 'I tried to change my SIP bank in INDMoney, but there was no option to update the mandate bank.',
+        quote: 'I tried to change my SIP bank in INDMoney, but there was no option to update the mandate bank without cancelling the SIP completely.',
         questionId: 'Q1',
         linkedThemeId: 'THEME-P6',
-        researcherInterpretation: 'Confirms Theme 6: Inability to modify bank mandate blocks active investors.'
+        researcherInterpretation: 'Identifies lack of mandate bank portability as an operational trap.'
       }
     ],
     createdAt: '2026-11-02T16:15:00Z'
@@ -140,7 +161,7 @@ const INITIAL_PARTICIPANTS: InterviewParticipant[] = [
 
 export const InvestorInterviewsWorkspace: React.FC = () => {
   const fileInputId = useId();
-  const [activeTab, setActiveTab] = useState<'management' | 'analysis' | 'telemetry' | 'cohort' | 'validation'>('management');
+  const [activeTab, setActiveTab] = useState<'management' | 'insights' | 'contradictory' | 'telemetry' | 'dictionary' | 'cohort' | 'validation'>('insights');
 
   // Module 1: Participants state
   const [participants, setParticipants] = useState<InterviewParticipant[]>(INITIAL_PARTICIPANTS);
@@ -159,10 +180,47 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
   const [newNotes, setNewNotes] = useState<string>('');
   const [newObservations, setNewObservations] = useState<string>('');
 
-  // Module 3: Telemetry State
+  // Module 2: Qualitative Insights State
+  const [qualitativeInsights, setQualitativeInsights] = useState<QualitativeInsight[]>(INITIAL_QUALITATIVE_INSIGHTS);
+  const [tierFilter, setTierFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isNewInsightModalOpen, setIsNewInsightModalOpen] = useState<boolean>(false);
+
+  // Form state for new insight
+  const [insightParticipantId, setInsightParticipantId] = useState<string>('INV-001');
+  const [insightStatement, setInsightStatement] = useState<string>('');
+  const [insightInterpretation, setInsightInterpretation] = useState<string>('');
+  const [insightTier, setInsightTier] = useState<EvidenceTier>('Tier 1: Direct');
+  const [insightH1Rel, setInsightH1Rel] = useState<H1RelevanceRating>('Directly Supports H1');
+  const [insightStatus, setInsightStatus] = useState<InsightValidationStatus>('Draft');
+  const [insightThemeId, setInsightThemeId] = useState<string>('THEME-P3');
+  const [insightContraCategory, setInsightContraCategory] = useState<ContradictoryCategory>('Discretionary Spending');
+
+  // Module 3: Telemetry State & Enhanced CSV Importer
   const [telemetryEvents, setTelemetryEvents] = useState<TelemetryEventRecord[]>(SAMPLE_BENCHMARK_TELEMETRY);
-  const [csvUploadStatus, setCsvUploadStatus] = useState<string | null>(null);
+  const [telemetryDataSourceFilter, setTelemetryDataSourceFilter] = useState<'all' | 'Uploaded' | 'Demonstration'>('all');
   const [filterEventName, setFilterEventName] = useState<string>('all');
+  
+  // CSV Import Workflow States
+  const [csvRawText, setCsvRawText] = useState<string | null>(null);
+  const [csvFileName, setCsvFileName] = useState<string | null>(null);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [csvPreviewRows, setCsvPreviewRows] = useState<string[][]>([]);
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({
+    event_id: '',
+    user_id: '',
+    event_name: '',
+    timestamp: '',
+    sip_id: '',
+    bank_name: '',
+    failure_reason: '',
+    amount: ''
+  });
+  const [importResult, setImportResult] = useState<CsvImportResult | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
+
+  // Contradictory Evidence State
+  const [contradictoryRecords, setContradictoryRecords] = useState<ContradictoryEvidenceRecord[]>(INITIAL_CONTRADICTORY_EVIDENCE);
 
   // Selected participant
   const currentParticipant = participants.find((p) => p.id === selectedParticipantId) || participants[0];
@@ -217,25 +275,60 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
     );
   };
 
-  // Handler to add a verbatim quote from an answer
-  const handleAddVerbatimQuote = (qId: string, quoteText: string, themeId: string, interpretation: string) => {
-    if (!quoteText.trim()) return;
-    const newQuote = {
-      id: `VQ-${Date.now()}`,
-      quote: quoteText.trim(),
-      questionId: qId,
-      linkedThemeId: themeId,
-      researcherInterpretation: interpretation
+  // Handler to add a new qualitative insight
+  const handleCreateQualitativeInsight = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!insightStatement.trim() || !insightInterpretation.trim()) {
+      alert('Original statement and researcher interpretation are required.');
+      return;
+    }
+
+    const newInsightRecord: QualitativeInsight = {
+      id: `INS-00${qualitativeInsights.length + 1}`,
+      participantId: insightParticipantId,
+      originalStatement: insightStatement.trim(),
+      researcherInterpretation: insightInterpretation.trim(),
+      evidenceTier: insightTier,
+      h1Relevance: insightH1Rel,
+      validationStatus: insightStatus,
+      researcherApproval: {
+        isApproved: insightStatus === 'Validated',
+        approvedBy: insightStatus === 'Validated' ? 'Lead PM Researcher' : 'Pending Review',
+        approvedAt: insightStatus === 'Validated' ? new Date().toISOString() : null,
+        notes: 'Recorded during qualitative research session.'
+      },
+      sourceType: 'Actual Interview',
+      linkedThemeId: insightTier !== 'Contradictory' ? insightThemeId : undefined,
+      contradictoryCategory: insightTier === 'Contradictory' ? insightContraCategory : undefined,
+      createdAt: new Date().toISOString()
     };
-    setParticipants((prev) =>
-      prev.map((p) => {
-        if (p.id === currentParticipant.id) {
+
+    setQualitativeInsights([newInsightRecord, ...qualitativeInsights]);
+    setIsNewInsightModalOpen(false);
+
+    // Reset fields
+    setInsightStatement('');
+    setInsightInterpretation('');
+  };
+
+  // Handler to toggle approval on insight
+  const handleToggleInsightApproval = (id: string) => {
+    setQualitativeInsights((prev) =>
+      prev.map((ins) => {
+        if (ins.id === id) {
+          const nextApproved = !ins.researcherApproval.isApproved;
           return {
-            ...p,
-            verbatimQuotes: [...(p.verbatimQuotes || []), newQuote]
+            ...ins,
+            validationStatus: nextApproved ? 'Validated' : 'Under Review',
+            researcherApproval: {
+              isApproved: nextApproved,
+              approvedBy: nextApproved ? 'Lead PM Researcher' : 'Pending Review',
+              approvedAt: nextApproved ? new Date().toISOString() : null,
+              notes: nextApproved ? 'Approved by PM Researcher following interview audit.' : 'Marked for re-verification.'
+            }
           };
         }
-        return p;
+        return ins;
       })
     );
   };
@@ -260,69 +353,170 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  // CSV File Ingestion Handler
-  const handleCsvFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Step 1: Handle File Selection & Parse Raw Header/Preview
+  const handleSelectCsvFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    setCsvFileName(file.name);
     const reader = new FileReader();
     reader.onload = (e) => {
-      try {
-        const text = e.target?.result as string;
-        const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
-        if (lines.length < 2) {
-          setCsvUploadStatus('Error: CSV file is empty or missing data rows.');
-          return;
-        }
+      const text = e.target?.result as string;
+      setCsvRawText(text);
 
-        const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
-        const eventIdIdx = headers.indexOf('event_id');
-        const userIdIdx = headers.indexOf('user_id');
-        const eventNameIdx = headers.indexOf('event_name');
-        const timestampIdx = headers.indexOf('timestamp');
-        const sipIdIdx = headers.indexOf('sip_id');
-        const bankNameIdx = headers.indexOf('bank_name');
-        const failureReasonIdx = headers.indexOf('failure_reason');
-        const amountIdx = headers.indexOf('amount');
-
-        if (eventNameIdx === -1 || timestampIdx === -1) {
-          setCsvUploadStatus('Error: Missing required columns (event_name, timestamp).');
-          return;
-        }
-
-        const parsedRecords: TelemetryEventRecord[] = [];
-        for (let i = 1; i < lines.length; i++) {
-          const cols = lines[i].split(',').map((c) => c.trim().replace(/^"|"$/g, ''));
-          if (cols.length < 2) continue;
-
-          const rawEvent = (cols[eventNameIdx] || '').toLowerCase() as TelemetryEventName;
-          const parsedRecord: TelemetryEventRecord = {
-            eventId: eventIdIdx !== -1 && cols[eventIdIdx] ? cols[eventIdIdx] : `EVT-UP-${i}`,
-            userId: userIdIdx !== -1 && cols[userIdIdx] ? cols[userIdIdx] : `USR-ANON-${i}`,
-            eventName: rawEvent,
-            timestamp: cols[timestampIdx] || new Date().toISOString(),
-            sipId: sipIdIdx !== -1 && cols[sipIdIdx] ? cols[sipIdIdx] : `SIP-${i}`,
-            bankName: bankNameIdx !== -1 && cols[bankNameIdx] ? cols[bankNameIdx] : 'Unspecified Bank',
-            failureReason: failureReasonIdx !== -1 ? cols[failureReasonIdx] : undefined,
-            amount: amountIdx !== -1 && !isNaN(Number(cols[amountIdx])) ? Number(cols[amountIdx]) : undefined
-          };
-          parsedRecords.push(parsedRecord);
-        }
-
-        setTelemetryEvents((prev) => [...parsedRecords, ...prev]);
-        setCsvUploadStatus(`Successfully parsed and loaded ${parsedRecords.length} telemetry event records!`);
-        setTimeout(() => setCsvUploadStatus(null), 4000);
-      } catch (err: any) {
-        setCsvUploadStatus(`Failed to parse CSV: ${err.message}`);
+      const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      if (lines.length === 0) {
+        alert('The uploaded file is empty.');
+        return;
       }
+
+      const headers = lines[0].split(',').map((h) => h.trim().replace(/^"|"$/g, ''));
+      setCsvHeaders(headers);
+
+      // Auto-detect mappings
+      const detectedMap: Record<string, string> = { ...columnMapping };
+      const expectedFields = ['event_id', 'user_id', 'event_name', 'timestamp', 'sip_id', 'bank_name', 'failure_reason', 'amount'];
+      expectedFields.forEach((field) => {
+        const found = headers.find((h) => h.toLowerCase() === field.toLowerCase() || h.toLowerCase().includes(field.toLowerCase()));
+        if (found) {
+          detectedMap[field] = found;
+        }
+      });
+      setColumnMapping(detectedMap);
+
+      // Extract up to 5 preview rows
+      const preview: string[][] = [];
+      for (let i = 1; i < Math.min(lines.length, 6); i++) {
+        preview.push(lines[i].split(',').map((c) => c.trim().replace(/^"|"$/g, '')));
+      }
+      setCsvPreviewRows(preview);
+      setIsImportModalOpen(true);
     };
     reader.readAsText(file);
   };
 
-  // Filtered telemetry
-  const displayedTelemetry = filterEventName === 'all'
-    ? telemetryEvents
-    : telemetryEvents.filter((e) => e.eventName === filterEventName);
+  // Step 2: Execute Validated Ingestion with Duplicate Detection & Error Reporting
+  const handleExecuteImport = () => {
+    if (!csvRawText) return;
+
+    const lines = csvRawText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    const headers = lines[0].split(',').map((h) => h.trim().replace(/^"|"$/g, ''));
+
+    // Resolve column indexes from mapping
+    const eventIdIdx = headers.indexOf(columnMapping.event_id);
+    const userIdIdx = headers.indexOf(columnMapping.user_id);
+    const eventNameIdx = headers.indexOf(columnMapping.event_name);
+    const timestampIdx = headers.indexOf(columnMapping.timestamp);
+    const sipIdIdx = headers.indexOf(columnMapping.sip_id);
+    const bankNameIdx = headers.indexOf(columnMapping.bank_name);
+    const failureReasonIdx = headers.indexOf(columnMapping.failure_reason);
+    const amountIdx = headers.indexOf(columnMapping.amount);
+
+    if (eventNameIdx === -1 || timestampIdx === -1) {
+      alert('Error: You must map both "event_name" and "timestamp" columns.');
+      return;
+    }
+
+    const validEventsList = EXPECTED_TELEMETRY_EVENTS.map((e) => e.name);
+    const existingEventIds = new Set(telemetryEvents.map((e) => e.eventId));
+    const existingKeys = new Set(telemetryEvents.map((e) => `${e.userId}-${e.eventName}-${e.timestamp}`));
+
+    const imported: TelemetryEventRecord[] = [];
+    const errors: CsvImportError[] = [];
+    const duplicates: CsvDuplicateRecord[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const rowNum = i + 1;
+      const cols = lines[i].split(',').map((c) => c.trim().replace(/^"|"$/g, ''));
+      if (cols.length < 2) continue;
+
+      const rawEventName = (cols[eventNameIdx] || '').toLowerCase() as TelemetryEventName;
+      const rawTimestamp = cols[timestampIdx] || '';
+      const rawEventId = eventIdIdx !== -1 && cols[eventIdIdx] ? cols[eventIdIdx] : `EVT-UP-${Date.now()}-${i}`;
+      const rawUserId = userIdIdx !== -1 && cols[userIdIdx] ? cols[userIdIdx] : `USR-${i + 1000}`;
+
+      // 1. Validation: Event Name must match 11 expected
+      if (!validEventsList.includes(rawEventName)) {
+        errors.push({
+          rowNumber: rowNum,
+          field: 'event_name',
+          message: `Unrecognized event name "${cols[eventNameIdx]}". Must be one of the 11 standard events.`,
+          rawSnippet: lines[i]
+        });
+        continue;
+      }
+
+      // 2. Validation: Timestamp ISO format check
+      if (isNaN(Date.parse(rawTimestamp))) {
+        errors.push({
+          rowNumber: rowNum,
+          field: 'timestamp',
+          message: `Invalid timestamp format "${rawTimestamp}". Expecting ISO 8601 (e.g. 2026-10-01T10:00:00Z).`,
+          rawSnippet: lines[i]
+        });
+        continue;
+      }
+
+      // 3. Duplicate Detection
+      const dedupeKey = `${rawUserId}-${rawEventName}-${rawTimestamp}`;
+      if (existingEventIds.has(rawEventId) || existingKeys.has(dedupeKey)) {
+        duplicates.push({
+          rowNumber: rowNum,
+          eventId: rawEventId,
+          userId: rawUserId,
+          eventName: rawEventName,
+          reason: existingEventIds.has(rawEventId) ? 'Duplicate event_id' : 'Duplicate user + event + timestamp collision'
+        });
+        continue;
+      }
+
+      // Add to set to prevent within-file dupes
+      existingEventIds.add(rawEventId);
+      existingKeys.add(dedupeKey);
+
+      // Record valid row
+      imported.push({
+        eventId: rawEventId,
+        userId: rawUserId,
+        eventName: rawEventName,
+        timestamp: rawTimestamp,
+        sipId: sipIdIdx !== -1 && cols[sipIdIdx] ? cols[sipIdIdx] : `SIP-${i}`,
+        bankName: bankNameIdx !== -1 && cols[bankNameIdx] ? cols[bankNameIdx] : 'Unspecified Bank',
+        failureReason: failureReasonIdx !== -1 ? cols[failureReasonIdx] : undefined,
+        amount: amountIdx !== -1 && !isNaN(Number(cols[amountIdx])) ? Number(cols[amountIdx]) : undefined
+      });
+    }
+
+    setImportResult({
+      totalRowsProcessed: lines.length - 1,
+      validRowsCount: imported.length,
+      duplicatesCount: duplicates.length,
+      errorCount: errors.length,
+      errors,
+      duplicates,
+      importedEvents: imported
+    });
+
+    if (imported.length > 0) {
+      setTelemetryEvents((prev) => [...imported, ...prev]);
+    }
+  };
+
+  // Filtered Insights
+  const displayedInsights = qualitativeInsights.filter((ins) => {
+    if (tierFilter !== 'all' && ins.evidenceTier !== tierFilter) return false;
+    if (statusFilter !== 'all' && ins.validationStatus !== statusFilter) return false;
+    return true;
+  });
+
+  // Filtered Telemetry Records
+  const displayedTelemetry = telemetryEvents.filter((evt) => {
+    if (filterEventName !== 'all' && evt.eventName !== filterEventName) return false;
+    const isDemonstration = evt.eventId.startsWith('EVT-1') || evt.eventId.startsWith('EVT-2') || evt.eventId.startsWith('EVT-3');
+    if (telemetryDataSourceFilter === 'Uploaded' && isDemonstration) return false;
+    if (telemetryDataSourceFilter === 'Demonstration' && !isDemonstration) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -339,29 +533,58 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                 H1 Status: NOT VALIDATED
               </span>
               <span className="text-xs text-slate-500 font-medium">
-                Research Protocol 2026-P5
+                Evidence Governance Architecture
               </span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              Investor Interviews &amp; Behavioural Journey Telemetry
+              Investor Interviews, Evidence Tiers &amp; Journey Telemetry
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 max-w-4xl">
-              Scientific validation protocol combining qualitative 10-question investor discovery interviews with quantitative event funnel telemetry.
-              Maintains strict 4-tier separation: <strong>Observed Statements</strong>, <strong>Researcher Deductions</strong>, <strong>AI Heuristics</strong>, and <strong>Measured Retention Outcomes</strong>.
+              Scientific validation protocol combining qualitative 10-question discovery interviews, structured <strong>Tier 1–3 Evidence Classification</strong>, <strong>Contradictory Evidence Tracking</strong>, and <strong>11-Event Journey Telemetry</strong> with rigorous column validation and duplicate detection.
             </p>
           </div>
 
           <div className="flex sm:flex-col items-center sm:items-end gap-2 text-right">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Consent &amp; Privacy</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Research Governance</div>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
-              <Lock size={12} />
-              100% Anonymized IDs
+              <ShieldCheck size={13} />
+              Human PM Review Enforced
             </span>
           </div>
         </div>
 
         {/* Navigation Tabs */}
         <div className="mt-6 flex flex-wrap gap-2 border-t border-slate-200/70 pt-4">
+          <button
+            onClick={() => setActiveTab('insights')}
+            className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+              activeTab === 'insights'
+                ? 'bg-blue-700 text-white shadow-sm'
+                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            <ShieldCheck size={15} />
+            <span>Qualitative Insights &amp; Tiers</span>
+            <span className={`rounded-full px-1.5 py-0.2 text-[10px] ${activeTab === 'insights' ? 'bg-blue-800 text-white' : 'bg-slate-100 text-slate-600'}`}>
+              {qualitativeInsights.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('contradictory')}
+            className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+              activeTab === 'contradictory'
+                ? 'bg-blue-700 text-white shadow-sm'
+                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            <AlertCircle size={15} />
+            <span>Contradictory Evidence Tracker</span>
+            <span className={`rounded-full px-1.5 py-0.2 text-[10px] ${activeTab === 'contradictory' ? 'bg-blue-800 text-white' : 'bg-slate-100 text-slate-600'}`}>
+              4 Categories
+            </span>
+          </button>
+
           <button
             onClick={() => setActiveTab('management')}
             className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
@@ -371,24 +594,9 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
             }`}
           >
             <Users size={15} />
-            <span>Module 1: Participant Register &amp; Q&amp;A</span>
+            <span>Participant Register &amp; Q&amp;A</span>
             <span className={`rounded-full px-1.5 py-0.2 text-[10px] ${activeTab === 'management' ? 'bg-blue-800 text-white' : 'bg-slate-100 text-slate-600'}`}>
               {participants.length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('analysis')}
-            className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
-              activeTab === 'analysis'
-                ? 'bg-blue-700 text-white shadow-sm'
-                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-            }`}
-          >
-            <MessageSquare size={15} />
-            <span>Module 2: Interview Analysis &amp; Pain Points</span>
-            <span className={`rounded-full px-1.5 py-0.2 text-[10px] ${activeTab === 'analysis' ? 'bg-blue-800 text-white' : 'bg-slate-100 text-slate-600'}`}>
-              6 Themes
             </span>
           </button>
 
@@ -401,10 +609,22 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
             }`}
           >
             <Activity size={15} />
-            <span>Module 3: Journey Telemetry Importer</span>
+            <span>Telemetry &amp; CSV Importer</span>
             <span className={`rounded-full px-1.5 py-0.2 text-[10px] ${activeTab === 'telemetry' ? 'bg-blue-800 text-white' : 'bg-slate-100 text-slate-600'}`}>
               {telemetryEvents.length} Events
             </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('dictionary')}
+            className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+              activeTab === 'dictionary'
+                ? 'bg-blue-700 text-white shadow-sm'
+                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            <BookOpen size={15} />
+            <span>11-Event Data Dictionary</span>
           </button>
 
           <button
@@ -416,7 +636,7 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
             }`}
           >
             <BarChart3 size={15} />
-            <span>Module 4: Cohort &amp; 12-Month Retention</span>
+            <span>Cohort &amp; 12-Month Retention</span>
           </button>
 
           <button
@@ -428,13 +648,449 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
             }`}
           >
             <ShieldCheck size={15} />
-            <span>Module 5: Hypothesis Validation Synthesis</span>
+            <span>H1 Validation Synthesis</span>
           </button>
         </div>
       </div>
 
       {/* ===================================================================== */}
-      {/* TAB 1: INTERVIEW MANAGEMENT & PARTICIPANT REGISTER                     */}
+      {/* TAB 1: QUALITATIVE INSIGHTS & EVIDENCE TIERS (ITEM 1 & 2)             */}
+      {/* ===================================================================== */}
+      {activeTab === 'insights' && (
+        <div className="space-y-6">
+          {/* Tier Definitions Card */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div className="rounded-xl border border-blue-200 bg-white p-4 shadow-sm space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700">Tier 1: Direct</span>
+                <span className="rounded-full bg-blue-100 text-blue-900 px-2 py-0.5 text-[10px] font-bold">
+                  {qualitativeInsights.filter((i) => i.evidenceTier === 'Tier 1: Direct').length}
+                </span>
+              </div>
+              <div className="text-xs text-slate-600">
+                Explicit statements of mandate / AutoPay debit failure causing skipped instalments or bounce fines.
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-indigo-200 bg-white p-4 shadow-sm space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700">Tier 2: Supporting</span>
+                <span className="rounded-full bg-indigo-100 text-indigo-900 px-2 py-0.5 text-[10px] font-bold">
+                  {qualitativeInsights.filter((i) => i.evidenceTier === 'Tier 2: Supporting').length}
+                </span>
+              </div>
+              <div className="text-xs text-slate-600">
+                Related operational friction (bank switching locks, date adjustment friction, NAV lag) impacting continuity.
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Tier 3: Contextual</span>
+                <span className="rounded-full bg-slate-100 text-slate-800 px-2 py-0.5 text-[10px] font-bold">
+                  {qualitativeInsights.filter((i) => i.evidenceTier === 'Tier 3: Contextual').length}
+                </span>
+              </div>
+              <div className="text-xs text-slate-600">
+                General investor psychology, pre-debit communication expectations, and market sentiment background.
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 shadow-sm space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">Contradictory</span>
+                <span className="rounded-full bg-amber-100 text-amber-900 px-2 py-0.5 text-[10px] font-bold">
+                  {qualitativeInsights.filter((i) => i.evidenceTier === 'Contradictory').length}
+                </span>
+              </div>
+              <div className="text-xs text-amber-900">
+                Alternative causes for SIP stoppage (discretionary spending, emergency bills, shifting priorities).
+              </div>
+            </div>
+          </div>
+
+          {/* Controls & Filter Bar */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="font-semibold text-slate-700 flex items-center gap-1">
+                <Filter size={14} className="text-slate-400" />
+                Tier Filter:
+              </span>
+              {['all', 'Tier 1: Direct', 'Tier 2: Supporting', 'Tier 3: Contextual', 'Contradictory'].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTierFilter(t)}
+                  className={`rounded-lg px-2.5 py-1 font-semibold transition ${
+                    tierFilter === t
+                      ? 'bg-blue-700 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {t === 'all' ? 'All Tiers' : t}
+                </button>
+              ))}
+
+              <span className="ml-2 font-semibold text-slate-700">Status:</span>
+              {['all', 'Validated', 'Under Review'].map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setStatusFilter(st)}
+                  className={`rounded-lg px-2.5 py-1 font-semibold transition ${
+                    statusFilter === st
+                      ? 'bg-slate-800 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {st === 'all' ? 'All Status' : st}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setIsNewInsightModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 transition shadow-sm"
+            >
+              <Plus size={14} />
+              <span>Record New Insight</span>
+            </button>
+          </div>
+
+          {/* Qualitative Insights Grid with 7 Mandatory Fields */}
+          <div className="space-y-4">
+            {displayedInsights.map((insight) => (
+              <div
+                key={insight.id}
+                className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3.5 transition hover:border-blue-300"
+              >
+                {/* Header row: Participant ID, Evidence Tier, H1 Relevance, Validation Status */}
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs bg-slate-100 text-slate-900 px-2 py-0.5 rounded border border-slate-200">
+                      {insight.id}
+                    </span>
+                    <span className="font-mono text-xs font-bold text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                      Participant: {insight.participantId}
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      • {insight.sourceType}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                      insight.evidenceTier === 'Tier 1: Direct'
+                        ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                        : insight.evidenceTier === 'Tier 2: Supporting'
+                        ? 'bg-indigo-100 text-indigo-800 border border-indigo-300'
+                        : insight.evidenceTier === 'Tier 3: Contextual'
+                        ? 'bg-slate-100 text-slate-700 border border-slate-300'
+                        : 'bg-amber-100 text-amber-900 border border-amber-300'
+                    }`}>
+                      {insight.evidenceTier}
+                    </span>
+
+                    <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                      insight.h1Relevance === 'Directly Supports H1'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : insight.h1Relevance === 'Contradicts H1'
+                        ? 'bg-rose-100 text-rose-800'
+                        : 'bg-slate-100 text-slate-700'
+                    }`}>
+                      {insight.h1Relevance}
+                    </span>
+
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                      insight.validationStatus === 'Validated'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-300'
+                        : 'bg-amber-50 text-amber-700 border border-amber-300'
+                    }`}>
+                      {insight.validationStatus}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Original Statement (Verbatim) */}
+                <div className="space-y-1">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Original Statement / Event Reference:
+                  </div>
+                  <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs italic text-slate-800 leading-relaxed">
+                    &ldquo;{insight.originalStatement}&rdquo;
+                  </div>
+                </div>
+
+                {/* Researcher Interpretation */}
+                <div className="space-y-1">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-indigo-800 flex items-center gap-1.5">
+                    <Sparkles size={12} className="text-indigo-600" />
+                    <span>Researcher Interpretation (PM Deduction):</span>
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed font-sans">
+                    {insight.researcherInterpretation}
+                  </p>
+                </div>
+
+                {/* Footer: Approval metadata & Actions */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-slate-700">Governance Sign-off:</span>
+                    {insight.researcherApproval.isApproved ? (
+                      <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
+                        <CheckCircle2 size={13} />
+                        Approved by {insight.researcherApproval.approvedBy} ({insight.researcherApproval.approvedAt?.split('T')[0]})
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-amber-700 font-medium">
+                        <Clock size={13} />
+                        Pending Human Confirmation
+                      </span>
+                    )}
+                    {insight.researcherApproval.notes && (
+                      <span className="text-[11px] text-slate-400 italic">
+                        — {insight.researcherApproval.notes}
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => handleToggleInsightApproval(insight.id)}
+                    className={`rounded px-2.5 py-1 text-[11px] font-semibold transition ${
+                      insight.researcherApproval.isApproved
+                        ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    }`}
+                  >
+                    {insight.researcherApproval.isApproved ? 'Mark for Review' : 'Approve Insight'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Record New Insight Modal */}
+          {isNewInsightModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+              <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Record Qualitative Insight</h3>
+                    <p className="text-xs text-slate-500">Enforces 7 mandatory research fields</p>
+                  </div>
+                  <button
+                    onClick={() => setIsNewInsightModalOpen(false)}
+                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateQualitativeInsight} className="space-y-3.5 text-xs text-slate-700">
+                  <div>
+                    <label className="font-semibold text-slate-800">Participant ID</label>
+                    <select
+                      value={insightParticipantId}
+                      onChange={(e) => setInsightParticipantId(e.target.value)}
+                      className="mt-1 w-full rounded border border-slate-300 p-2 bg-white font-mono"
+                    >
+                      {participants.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.id} ({p.experienceProfile} • {p.bankMandateExperience})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-slate-800">Original Verbatim Statement / Event Reference</label>
+                    <textarea
+                      rows={3}
+                      required
+                      value={insightStatement}
+                      onChange={(e) => setInsightStatement(e.target.value)}
+                      placeholder="Exact wording from interview notes or verbatim quote..."
+                      className="mt-1 w-full rounded border border-slate-300 p-2 italic"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-slate-800">Researcher Interpretation (PM Deduction)</label>
+                    <textarea
+                      rows={3}
+                      required
+                      value={insightInterpretation}
+                      onChange={(e) => setInsightInterpretation(e.target.value)}
+                      placeholder="What this reveals about customer friction, cognitive load, or failure recovery..."
+                      className="mt-1 w-full rounded border border-slate-300 p-2"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-semibold text-slate-800">Evidence Tier</label>
+                      <select
+                        value={insightTier}
+                        onChange={(e) => setInsightTier(e.target.value as EvidenceTier)}
+                        className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
+                      >
+                        <option value="Tier 1: Direct">Tier 1: Direct</option>
+                        <option value="Tier 2: Supporting">Tier 2: Supporting</option>
+                        <option value="Tier 3: Contextual">Tier 3: Contextual</option>
+                        <option value="Contradictory">Contradictory Evidence</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="font-semibold text-slate-800">H1 Relevance</label>
+                      <select
+                        value={insightH1Rel}
+                        onChange={(e) => setInsightH1Rel(e.target.value as H1RelevanceRating)}
+                        className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
+                      >
+                        <option value="Directly Supports H1">Directly Supports H1</option>
+                        <option value="Indirectly Related">Indirectly Related</option>
+                        <option value="Contradicts H1">Contradicts H1</option>
+                        <option value="Not Relevant">Not Relevant</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-semibold text-slate-800">Validation Status</label>
+                      <select
+                        value={insightStatus}
+                        onChange={(e) => setInsightStatus(e.target.value as InsightValidationStatus)}
+                        className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
+                      >
+                        <option value="Draft">Draft</option>
+                        <option value="Under Review">Under Review</option>
+                        <option value="Validated">Validated</option>
+                        <option value="Rejected">Rejected</option>
+                      </select>
+                    </div>
+
+                    {insightTier === 'Contradictory' ? (
+                      <div>
+                        <label className="font-semibold text-slate-800">Alternative Explanation</label>
+                        <select
+                          value={insightContraCategory}
+                          onChange={(e) => setInsightContraCategory(e.target.value as ContradictoryCategory)}
+                          className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
+                        >
+                          <option value="Discretionary Spending">Discretionary Spending</option>
+                          <option value="Insufficient Balance">Insufficient Balance</option>
+                          <option value="Changing Investment Priorities">Changing Priorities</option>
+                          <option value="Unrelated Technical Issue">Unrelated Tech Issue</option>
+                        </select>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="font-semibold text-slate-800">Linked Pain Point Theme</label>
+                        <select
+                          value={insightThemeId}
+                          onChange={(e) => setInsightThemeId(e.target.value)}
+                          className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
+                        >
+                          {PHASE_4_PAIN_POINT_THEMES.map((th) => (
+                            <option key={th.id} value={th.id}>
+                              {th.code}: {th.title}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setIsNewInsightModalOpen(false)}
+                      className="rounded-lg border border-slate-300 px-3 py-1.5 font-semibold text-slate-600 hover:bg-slate-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="rounded-lg bg-blue-700 px-4 py-1.5 font-semibold text-white hover:bg-blue-800"
+                    >
+                      Save Qualitative Insight
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* TAB 2: CONTRADICTORY EVIDENCE TRACKER (ITEM 3)                        */}
+      {/* ===================================================================== */}
+      {activeTab === 'contradictory' && (
+        <div className="space-y-6">
+          <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm space-y-2">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={20} className="text-amber-700" />
+              <h3 className="text-base font-bold text-amber-950">
+                Contradictory Evidence &amp; Alternative Explanations Tracker
+              </h3>
+            </div>
+            <p className="text-xs text-amber-900 leading-relaxed">
+              Scientific objectivity requires capturing factors that cause SIP discontinuations independent of bank mandate friction.
+              These alternative causes must be isolated from the H1 retention model so we never claim mandate recovery will solve voluntary lifestyle or macro spending decisions.
+            </p>
+          </div>
+
+          {/* 4 Contradictory Categories Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {contradictoryRecords.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3.5 flex flex-col justify-between"
+              >
+                <div className="space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="rounded-full bg-amber-100 text-amber-900 px-2.5 py-0.5 text-[11px] font-bold border border-amber-200">
+                      {item.category}
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-500">
+                      Freq: {item.observedFrequency}
+                    </span>
+                  </div>
+
+                  <h4 className="text-sm font-bold text-slate-900">{item.title}</h4>
+                  <p className="text-xs text-slate-600 leading-relaxed">{item.description}</p>
+
+                  {/* Customer quote / behavior */}
+                  <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs italic text-slate-800">
+                    &ldquo;{item.customerQuoteOrBehavior}&rdquo;
+                    {item.participantRef && (
+                      <span className="block mt-1 font-sans text-[10px] text-slate-400 not-italic">
+                        Source Ref: {item.participantRef}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* H1 Impact and Mitigation */}
+                <div className="space-y-2 pt-2 border-t border-slate-100 text-xs">
+                  <div>
+                    <span className="font-bold text-rose-800">H1 Impact Assessment: </span>
+                    <span className="text-slate-600">{item.h1ImpactAssessment}</span>
+                  </div>
+                  <div className="rounded bg-blue-50 border border-blue-100 p-2 text-blue-900">
+                    <span className="font-bold">Isolation / Counter-Mitigation: </span>
+                    <span>{item.counterMitigationOrIsolation}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* TAB 3: PARTICIPANT REGISTER & CONDUCT INTERVIEW                       */}
       {/* ===================================================================== */}
       {activeTab === 'management' && (
         <div className="space-y-6">
@@ -581,7 +1237,7 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
             </div>
           </div>
 
-          {/* Conduct Interview Q&A Workspace for Selected Participant */}
+          {/* Conduct Interview Q&A for Selected Participant */}
           {currentParticipant && (
             <div className="rounded-xl border border-blue-200 bg-white p-5 shadow-sm space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-3">
@@ -606,7 +1262,7 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                 </div>
               </div>
 
-              {/* Question Selector Tabs */}
+              {/* Question Tabs */}
               <div className="flex gap-1.5 overflow-x-auto pb-2 border-b border-slate-100">
                 {DISCOVERY_QA_DATA.map((q) => {
                   const hasAnswer = Boolean(currentParticipant.responses?.[q.id]);
@@ -630,14 +1286,13 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                 })}
               </div>
 
-              {/* Active Question Detail & Response Capture */}
+              {/* Active Question Capture */}
               {(() => {
                 const qItem = DISCOVERY_QA_DATA.find((q) => q.id === activeInterviewQ) || DISCOVERY_QA_DATA[0];
                 const currentAnswer = currentParticipant.responses?.[qItem.id] || '';
 
                 return (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Left: Question Prompt and Neutral Research Guidance */}
                     <div className="space-y-4">
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
                         <div className="flex items-center justify-between">
@@ -656,27 +1311,23 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Synthesis from Pilot Findings */}
                       <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 p-3.5 text-xs space-y-1.5">
                         <div className="font-semibold text-indigo-900 flex items-center gap-1.5">
                           <Sparkles size={14} className="text-indigo-600" />
-                          <span>Expected Empirical Answer Synthesis (Phase 4 Grounding)</span>
+                          <span>Expected Empirical Answer Synthesis</span>
                         </div>
                         <p className="text-slate-600 leading-relaxed">
                           {qItem.answer_synthesis}
                         </p>
                       </div>
 
-                      {/* Top Survey Options */}
                       <div className="rounded-lg border border-slate-200 p-3.5 space-y-2">
                         <div className="text-xs font-semibold text-slate-700">Top Empirical Response Options:</div>
                         <div className="space-y-1.5">
                           {qItem.survey_options.map((opt, idx) => (
                             <button
                               key={idx}
-                              onClick={() => {
-                                handleSaveInterviewResponse(qItem.id, opt);
-                              }}
+                              onClick={() => handleSaveInterviewResponse(qItem.id, opt)}
                               className="w-full text-left rounded border border-slate-100 bg-white hover:bg-blue-50 p-2 text-xs text-slate-700 transition flex items-start gap-2"
                             >
                               <span className="font-mono text-[10px] text-blue-700 font-bold mt-0.5">{idx + 1}.</span>
@@ -687,11 +1338,10 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Right: Verbatim Response Capture & Attribution */}
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
-                          <span>Verbatim Participant Response (Participant Statement)</span>
+                          <span>Verbatim Participant Response</span>
                           <span className="text-[10px] font-normal text-slate-500">Preserve exact wording</span>
                         </label>
                         <textarea
@@ -699,381 +1349,27 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                           value={currentAnswer}
                           onChange={(e) => handleSaveInterviewResponse(qItem.id, e.target.value)}
                           placeholder="Record exact investor statement verbatim. Do not insert researcher deductions here..."
-                          className="w-full rounded-lg border border-slate-300 p-3 text-xs text-slate-900 focus:border-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-700 font-sans"
+                          className="w-full rounded-lg border border-slate-300 p-3 text-xs text-slate-900 focus:border-blue-700 font-sans"
                         />
                       </div>
 
-                      {/* Extract to Verbatim Quote with Theme Linkage */}
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3">
-                        <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                          <FileText size={14} className="text-blue-700" />
-                          <span>Link Response to Phase 4 Pain-Point Theme (Module 2)</span>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-[11px] font-semibold text-slate-600">Select Pain-Point Theme:</label>
-                          <select
-                            id="themeSelector"
-                            className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800 focus:border-blue-700"
-                            defaultValue="THEME-P2"
-                          >
-                            {PHASE_4_PAIN_POINT_THEMES.map((th) => (
-                              <option key={th.id} value={th.id}>
-                                {th.code}: {th.title} ({th.reviewCount} reviews)
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[11px] font-semibold text-slate-600">Researcher Deduction / Interpretation:</label>
-                          <input
-                            id="researcherDeduction"
-                            type="text"
-                            placeholder="e.g. Confirms customer experiences silent mandate drop-off..."
-                            className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800"
-                          />
-                        </div>
-
-                        <button
-                          onClick={() => {
-                            const sel = (document.getElementById('themeSelector') as HTMLSelectElement)?.value || 'THEME-P2';
-                            const ded = (document.getElementById('researcherDeduction') as HTMLInputElement)?.value || '';
-                            handleAddVerbatimQuote(qItem.id, currentAnswer, sel, ded);
-                            alert('Verbatim statement linked to pain-point theme successfully!');
-                          }}
-                          disabled={!currentAnswer.trim()}
-                          className="w-full rounded-lg bg-blue-700 py-2 text-xs font-semibold text-white hover:bg-blue-800 transition disabled:opacity-40"
-                        >
-                          Save Verbatim Evidence Quote
-                        </button>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 text-xs space-y-2">
+                        <div className="font-bold text-slate-800">Transfer directly to Insights Engine:</div>
+                        <p className="text-[11px] text-slate-600">
+                          To classify this statement under <strong>Tier 1 / Tier 2 / Tier 3 / Contradictory</strong> with researcher approval, switch to the <em>Qualitative Insights &amp; Tiers</em> tab and click <em>Record New Insight</em>.
+                        </p>
                       </div>
-
-                      {/* Display existing quotes for this participant */}
-                      {currentParticipant.verbatimQuotes && currentParticipant.verbatimQuotes.length > 0 && (
-                        <div className="space-y-2 pt-2">
-                          <div className="text-xs font-bold text-slate-700">Linked Qualitative Evidence Quotes:</div>
-                          <div className="space-y-2">
-                            {currentParticipant.verbatimQuotes.map((vq) => (
-                              <div key={vq.id} className="rounded border border-slate-200 bg-white p-2.5 text-xs space-y-1">
-                                <div className="flex items-center justify-between text-[10px] text-slate-500">
-                                  <span className="font-semibold text-blue-700">{vq.questionId}</span>
-                                  <span className="bg-blue-50 text-blue-900 px-1.5 py-0.5 rounded font-medium">{vq.linkedThemeId}</span>
-                                </div>
-                                <p className="italic text-slate-800">&ldquo;{vq.quote}&rdquo;</p>
-                                {vq.researcherInterpretation && (
-                                  <p className="text-[11px] text-indigo-700">
-                                    <strong>PM Deduction:</strong> {vq.researcherInterpretation}
-                                  </p>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 );
               })()}
             </div>
           )}
-
-          {/* Register Participant Modal */}
-          {isRegisterModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-              <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900">Register Interview Participant</h3>
-                    <p className="text-xs text-slate-500">Strictly anonymised investor metadata (Module 1)</p>
-                  </div>
-                  <button
-                    onClick={() => setIsRegisterModalOpen(false)}
-                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-
-                <form onSubmit={handleRegisterParticipant} className="space-y-3.5 text-xs text-slate-700">
-                  <div>
-                    <label className="font-semibold text-slate-800">Participant ID (Anonymised)</label>
-                    <input
-                      type="text"
-                      required
-                      value={newId}
-                      onChange={(e) => setNewId(e.target.value)}
-                      className="mt-1 w-full rounded border border-slate-300 p-2 font-mono"
-                      placeholder="e.g. INV-004"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="font-semibold text-slate-800">Experience Tier</label>
-                      <select
-                        value={newExperience}
-                        onChange={(e) => setNewExperience(e.target.value as InvestorExperienceLevel)}
-                        className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
-                      >
-                        <option value="Novice">Novice (&lt; 6 mos)</option>
-                        <option value="Intermediate">Intermediate (6–24 mos)</option>
-                        <option value="Experienced">Experienced (2+ yrs)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="font-semibold text-slate-800">SIP Continuity Status</label>
-                      <select
-                        value={newStatus}
-                        onChange={(e) => setNewStatus(e.target.value as SIPContinuityStatus)}
-                        className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
-                      >
-                        <option value="Active">Active</option>
-                        <option value="Paused">Paused</option>
-                        <option value="Discontinued">Discontinued / Stopped</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="font-semibold text-slate-800">First-Time SIP Investor?</label>
-                      <select
-                        value={newFirstTime ? 'yes' : 'no'}
-                        onChange={(e) => setNewFirstTime(e.target.value === 'yes')}
-                        className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
-                      >
-                        <option value="yes">Yes (First-Time)</option>
-                        <option value="no">No (Repeat / Seasoned)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="font-semibold text-slate-800">Interview Date</label>
-                      <input
-                        type="date"
-                        required
-                        value={newDate}
-                        onChange={(e) => setNewDate(e.target.value)}
-                        className="mt-1 w-full rounded border border-slate-300 p-2"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-800">Bank Mandate Experience</label>
-                    <input
-                      type="text"
-                      required
-                      value={newBank}
-                      onChange={(e) => setNewBank(e.target.value)}
-                      placeholder="e.g. State Bank of India (PSU NACH), HDFC Netbanking"
-                      className="mt-1 w-full rounded border border-slate-300 p-2"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-800">Initial Interview Notes</label>
-                    <textarea
-                      rows={2}
-                      value={newNotes}
-                      onChange={(e) => setNewNotes(e.target.value)}
-                      placeholder="Context of interview, participant background..."
-                      className="mt-1 w-full rounded border border-slate-300 p-2"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-800">Researcher Observations</label>
-                    <textarea
-                      rows={2}
-                      value={newObservations}
-                      onChange={(e) => setNewObservations(e.target.value)}
-                      placeholder="Non-verbal cues, hesitation around bank bounce penalties..."
-                      className="mt-1 w-full rounded border border-slate-300 p-2"
-                    />
-                  </div>
-
-                  {/* Informed Consent Confirmation */}
-                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 space-y-2">
-                    <label className="flex items-start gap-2 font-semibold text-emerald-900 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={newConsent}
-                        onChange={(e) => setNewConsent(e.target.checked)}
-                        className="mt-0.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                      />
-                      <span>Informed Consent Verified (Module 6 Privacy)</span>
-                    </label>
-                    <p className="text-[11px] text-emerald-800 pl-5">
-                      I certify that informed consent was obtained. No bank account numbers, passwords, OTPs, or debit card CVVs are stored.
-                    </p>
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-                    <button
-                      type="button"
-                      onClick={() => setIsRegisterModalOpen(false)}
-                      className="rounded-lg border border-slate-300 px-3 py-1.5 font-semibold text-slate-600 hover:bg-slate-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="rounded-lg bg-blue-700 px-4 py-1.5 font-semibold text-white hover:bg-blue-800"
-                    >
-                      Save Participant
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
       {/* ===================================================================== */}
-      {/* TAB 2: INTERVIEW ANALYSIS & PAIN-POINT MAPPING                         */}
-      {/* ===================================================================== */}
-      {activeTab === 'analysis' && (
-        <div className="space-y-6">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200 gap-3">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <MessageSquare size={18} className="text-blue-700" />
-                  Qualitative Interview Analysis &amp; Pain-Point Grounding (Module 2)
-                </h3>
-                <p className="text-xs text-slate-600">
-                  Every qualitative finding is mapped directly back to the 6 Phase 4 pain points and 26 human-approved review records.
-                </p>
-              </div>
-
-              <div className="rounded-full bg-blue-100 text-blue-900 px-3 py-1 text-xs font-semibold">
-                6 Grounded Pain Points
-              </div>
-            </div>
-
-            {/* The 6 Phase 4 Pain Points Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {PHASE_4_PAIN_POINT_THEMES.map((theme) => {
-                // Find any participant quotes linked to this theme
-                const linkedQuotes = participants.flatMap((p) =>
-                  (p.verbatimQuotes || []).filter((vq) => vq.linkedThemeId === theme.id).map((q) => ({
-                    ...q,
-                    participantId: p.id,
-                    experience: p.experienceProfile
-                  }))
-                );
-
-                return (
-                  <div key={theme.id} className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="rounded bg-blue-700 px-2 py-0.5 text-[10px] font-bold text-white">
-                            {theme.code}
-                          </span>
-                          <span className="text-[11px] font-bold text-slate-500">
-                            {theme.reviewCount} Approved Reviews
-                          </span>
-                        </div>
-                        <h4 className="mt-1 text-sm font-bold text-slate-900">{theme.title}</h4>
-                      </div>
-
-                      <span className="rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-semibold">
-                        {theme.h1Relevance}
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-slate-600 leading-relaxed">{theme.description}</p>
-
-                    <div className="rounded border border-slate-200 bg-white p-2.5 text-[11px] space-y-1">
-                      <div className="font-semibold text-slate-700">Original Review IDs (Phase 4):</div>
-                      <div className="flex flex-wrap gap-1">
-                        {theme.supportingReviewIds.map((rId) => (
-                          <span key={rId} className="font-mono text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-blue-900">
-                            {rId}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Linked Interview Statements */}
-                    <div className="space-y-2 pt-1 border-t border-slate-200">
-                      <div className="text-[11px] font-bold text-slate-800 flex items-center justify-between">
-                        <span>Supporting Interview Statements:</span>
-                        <span className="text-blue-700">{linkedQuotes.length} Quotes</span>
-                      </div>
-
-                      {linkedQuotes.length === 0 ? (
-                        <div className="text-[11px] italic text-slate-400">
-                          No interview statements linked yet. Open Module 1 Q&amp;A to link participant answers.
-                        </div>
-                      ) : (
-                        linkedQuotes.map((lq, idx) => (
-                          <div key={idx} className="rounded border border-blue-100 bg-white p-2 text-xs space-y-1">
-                            <div className="flex items-center justify-between text-[10px] text-slate-400">
-                              <span className="font-mono font-bold text-blue-800">{lq.participantId} ({lq.experience})</span>
-                              <span>{lq.questionId}</span>
-                            </div>
-                            <p className="italic text-slate-700">&ldquo;{lq.quote}&rdquo;</p>
-                            {lq.researcherInterpretation && (
-                              <p className="text-[10px] text-indigo-700">
-                                <strong>Researcher Deduction:</strong> {lq.researcherInterpretation}
-                              </p>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Contradictory Evidence & Edge Cases Section */}
-          <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-5 shadow-sm space-y-3">
-            <div className="flex items-center gap-2">
-              <AlertCircle size={18} className="text-amber-700" />
-              <h4 className="text-sm font-bold text-amber-950">
-                Contradictory Evidence &amp; Voluntary SIP Discontinuation Log
-              </h4>
-            </div>
-            <p className="text-xs text-amber-900 leading-relaxed">
-              Scientific integrity requires recording evidence that challenges H1. Not all SIP stoppages are caused by bank mandate failures:
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-              <div className="rounded-lg border border-amber-200 bg-white p-3 space-y-1">
-                <div className="text-xs font-bold text-slate-800">1. Discretionary Cash Reallocation</div>
-                <p className="text-[11px] text-slate-600">
-                  Investors pause SIPs during festival months (Diwali/Weddings) or for lump-sum tax investments (ELSS/PPF) rather than platform friction.
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-amber-200 bg-white p-3 space-y-1">
-                <div className="text-xs font-bold text-slate-800">2. Emergency Medical Expenses</div>
-                <p className="text-[11px] text-slate-600">
-                  Unplanned healthcare or family expenditures force liquidation and immediate SIP stopping. Mandate automation cannot prevent this churn.
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-amber-200 bg-white p-3 space-y-1">
-                <div className="text-xs font-bold text-slate-800">3. Market Profit-Taking</div>
-                <p className="text-[11px] text-slate-600">
-                  Sophisticated investors deliberately stop SIPs at market all-time highs to reallocate to fixed income or direct equities.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ===================================================================== */}
-      {/* TAB 3: JOURNEY TELEMETRY IMPORTER                                     */}
+      {/* TAB 4: TELEMETRY & ENHANCED CSV IMPORTER (ITEMS 4, 5 & 6)             */}
       {/* ===================================================================== */}
       {activeTab === 'telemetry' && (
         <div className="space-y-6">
@@ -1083,10 +1379,10 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
               <div>
                 <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <Activity size={18} className="text-blue-700" />
-                  Journey Telemetry Importer &amp; Event Parser (Module 3)
+                  Journey Telemetry &amp; Validated CSV Importer (Module 3)
                 </h3>
                 <p className="text-xs text-slate-600">
-                  Import anonymised event logs matching the 11 standard NPCI/SIP lifecycle events.
+                  Upload CSV records with automated column mapping, table preview, duplicate detection, and format verification.
                 </p>
               </div>
 
@@ -1105,31 +1401,34 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/70 p-6 flex flex-col items-center justify-center text-center space-y-2">
                 <Upload size={24} className="text-blue-700" />
-                <div className="text-xs font-bold text-slate-800">Upload Anonymised Telemetry (.CSV)</div>
+                <div className="text-xs font-bold text-slate-800">Upload Anonymised Telemetry File (.CSV)</div>
                 <p className="text-[11px] text-slate-500 max-w-sm">
-                  Required columns: <code>event_name</code>, <code>timestamp</code>. Optional: <code>event_id</code>, <code>user_id</code>, <code>bank_name</code>, <code>failure_reason</code>, <code>amount</code>.
+                  Includes automated column mapping, validation against 11 NPCI events, duplicate detection, and import error logs.
                 </p>
 
                 <div className="pt-2">
                   <label htmlFor={fileInputId} className="cursor-pointer rounded-lg bg-blue-700 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-800 transition shadow-sm">
-                    Choose File to Import
+                    Select CSV File to Map &amp; Ingest
                   </label>
                   <input
                     id={fileInputId}
                     type="file"
                     accept=".csv"
-                    onChange={handleCsvFileUpload}
+                    onChange={handleSelectCsvFile}
                     className="hidden"
                   />
                 </div>
               </div>
 
-              {/* Sample Loader */}
+              {/* Research Integrity Distinction: Uploaded vs Demonstration */}
               <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col justify-between space-y-3">
                 <div>
-                  <div className="text-xs font-bold text-slate-900">Benchmark Telemetry Verification</div>
+                  <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <ShieldCheck size={14} className="text-emerald-600" />
+                    <span>Research Integrity Guardrail (Item 6)</span>
+                  </div>
                   <p className="mt-1 text-[11px] text-slate-500">
-                    Load pre-formatted demonstration batch (N=20 anonymised event transitions) to verify the Cohort Analysis module.
+                    Never generate fictional events. Actual uploaded CSV records are strictly differentiated from demonstration benchmark data.
                   </p>
                 </div>
 
@@ -1137,73 +1436,110 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                   <button
                     onClick={() => {
                       setTelemetryEvents(SAMPLE_BENCHMARK_TELEMETRY);
-                      setCsvUploadStatus('Loaded 20 verified benchmark event records.');
-                      setTimeout(() => setCsvUploadStatus(null), 3000);
+                      setImportResult(null);
                     }}
                     className="w-full rounded-lg bg-slate-100 hover:bg-slate-200 py-2 text-xs font-semibold text-slate-800 transition"
                   >
-                    Reset Benchmark Telemetry
+                    Reset Benchmark Telemetry (N=20)
                   </button>
 
                   <button
                     onClick={() => {
                       setTelemetryEvents([]);
-                      setCsvUploadStatus('Cleared telemetry workspace.');
-                      setTimeout(() => setCsvUploadStatus(null), 3000);
+                      setImportResult(null);
                     }}
                     className="w-full rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 py-1.5 text-xs font-semibold text-rose-700 transition"
                   >
-                    Clear Records
+                    Clear All Records
                   </button>
                 </div>
               </div>
             </div>
 
-            {csvUploadStatus && (
-              <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-900 flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-blue-700" />
-                <span>{csvUploadStatus}</span>
+            {/* Import Result Notification */}
+            {importResult && (
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                    <CheckCircle2 size={16} className="text-emerald-600" />
+                    Import Batch Report: {importResult.totalRowsProcessed} Rows Processed
+                  </span>
+                  <div className="flex gap-2">
+                    <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">
+                      {importResult.validRowsCount} Valid Ingested
+                    </span>
+                    <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold">
+                      {importResult.duplicatesCount} Duplicates Skipped
+                    </span>
+                    <span className="bg-rose-100 text-rose-800 px-2 py-0.5 rounded font-bold">
+                      {importResult.errorCount} Errors Flagged
+                    </span>
+                  </div>
+                </div>
+
+                {/* Duplicates notice */}
+                {importResult.duplicates.length > 0 && (
+                  <div className="rounded bg-amber-50 border border-amber-200 p-2 text-amber-900 text-[11px]">
+                    <strong>Duplicate Detection Notice:</strong> Skipped {importResult.duplicates.length} duplicate event(s) matching existing event_id or user+event+timestamp tuples.
+                  </div>
+                )}
+
+                {/* Errors Table */}
+                {importResult.errors.length > 0 && (
+                  <div className="rounded bg-rose-50 border border-rose-200 p-3 text-rose-900 text-[11px] space-y-1">
+                    <div className="font-bold flex items-center gap-1">
+                      <AlertTriangle size={13} />
+                      Validation Errors Encountered:
+                    </div>
+                    <div className="max-h-32 overflow-y-auto space-y-1">
+                      {importResult.errors.map((err, i) => (
+                        <div key={i}>
+                          • Row {err.rowNumber} [{err.field}]: {err.message}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* 11 Expected Telemetry Events Legend */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-            <h4 className="text-sm font-bold text-slate-900">11 Expected NPCI &amp; SIP Lifecycle Event Types</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-              {EXPECTED_TELEMETRY_EVENTS.map((evt) => (
-                <div key={evt.name} className="rounded border border-slate-100 bg-slate-50 p-2.5 space-y-1">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="font-mono font-bold text-blue-800">{evt.name}</span>
-                    <span className="bg-slate-200 text-slate-700 px-1 rounded">{evt.stage}</span>
-                  </div>
-                  <div className="font-semibold text-slate-800 text-[11px]">{evt.label}</div>
-                  <div className="text-[10px] text-slate-500">{evt.description}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Ingested Telemetry Table */}
+          {/* Telemetry Filter & Table */}
           <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50/50">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-slate-200 bg-slate-50/50 gap-3">
               <div className="text-sm font-bold text-slate-900">
-                Ingested Event Records ({telemetryEvents.length} Total)
+                Telemetry Records ({displayedTelemetry.length} Displayed)
               </div>
 
-              {/* Filter */}
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-500">Filter Event:</span>
-                <select
-                  value={filterEventName}
-                  onChange={(e) => setFilterEventName(e.target.value)}
-                  className="rounded border border-slate-300 bg-white px-2 py-1 text-xs"
-                >
-                  <option value="all">All Events</option>
-                  {EXPECTED_TELEMETRY_EVENTS.map((e) => (
-                    <option key={e.name} value={e.name}>{e.name}</option>
-                  ))}
-                </select>
+              <div className="flex flex-wrap items-center gap-3 text-xs">
+                {/* Provenance Filter */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-500">Source:</span>
+                  <select
+                    value={telemetryDataSourceFilter}
+                    onChange={(e) => setTelemetryDataSourceFilter(e.target.value as any)}
+                    className="rounded border border-slate-300 bg-white px-2 py-1 text-xs"
+                  >
+                    <option value="all">All Sources</option>
+                    <option value="Uploaded">Verified Uploads Only</option>
+                    <option value="Demonstration">Demonstration Benchmark Only</option>
+                  </select>
+                </div>
+
+                {/* Event Name Filter */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-500">Event:</span>
+                  <select
+                    value={filterEventName}
+                    onChange={(e) => setFilterEventName(e.target.value)}
+                    className="rounded border border-slate-300 bg-white px-2 py-1 text-xs"
+                  >
+                    <option value="all">All Events</option>
+                    {EXPECTED_TELEMETRY_EVENTS.map((e) => (
+                      <option key={e.name} value={e.name}>{e.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -1212,9 +1548,10 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                 <thead className="bg-slate-100 text-slate-600 font-semibold uppercase tracking-wider text-[11px] sticky top-0">
                   <tr>
                     <th className="py-2.5 px-3">Event ID</th>
+                    <th className="py-2.5 px-3">Data Provenance</th>
                     <th className="py-2.5 px-3">User ID</th>
                     <th className="py-2.5 px-3">Event Name</th>
-                    <th className="py-2.5 px-3">Timestamp</th>
+                    <th className="py-2.5 px-3">Timestamp (UTC)</th>
                     <th className="py-2.5 px-3">SIP ID</th>
                     <th className="py-2.5 px-3">Bank Name</th>
                     <th className="py-2.5 px-3">Failure Reason</th>
@@ -1222,43 +1559,262 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {displayedTelemetry.map((row) => (
-                    <tr key={row.eventId} className="hover:bg-slate-50">
-                      <td className="py-2.5 px-3 font-mono font-medium text-slate-900">{row.eventId}</td>
-                      <td className="py-2.5 px-3 font-mono text-blue-900">{row.userId}</td>
-                      <td className="py-2.5 px-3">
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                          row.eventName === 'sip_debit_failed'
-                            ? 'bg-rose-100 text-rose-800'
-                            : row.eventName === 'sip_instalment_successful'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : row.eventName === 'recovery_attempted'
-                            ? 'bg-indigo-100 text-indigo-800'
-                            : 'bg-slate-100 text-slate-700'
-                        }`}>
-                          {row.eventName}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-slate-500 font-mono text-[11px]">{row.timestamp}</td>
-                      <td className="py-2.5 px-3 font-mono">{row.sipId}</td>
-                      <td className="py-2.5 px-3">{row.bankName}</td>
-                      <td className="py-2.5 px-3 text-rose-700 font-medium">
-                        {row.failureReason || '—'}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-medium">
-                        {row.amount ? `₹${row.amount.toLocaleString('en-IN')}` : '—'}
-                      </td>
-                    </tr>
-                  ))}
+                  {displayedTelemetry.map((row) => {
+                    const isDemonstration = row.eventId.startsWith('EVT-1') || row.eventId.startsWith('EVT-2') || row.eventId.startsWith('EVT-3');
+                    return (
+                      <tr key={row.eventId} className="hover:bg-slate-50">
+                        <td className="py-2.5 px-3 font-mono font-medium text-slate-900">{row.eventId}</td>
+                        <td className="py-2.5 px-3">
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            isDemonstration
+                              ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                              : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          }`}>
+                            {isDemonstration ? 'Demonstration Benchmark' : 'Verified Upload'}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 font-mono text-blue-900">{row.userId}</td>
+                        <td className="py-2.5 px-3">
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            row.eventName === 'sip_debit_failed'
+                              ? 'bg-rose-100 text-rose-800'
+                              : row.eventName === 'sip_instalment_successful'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : row.eventName === 'recovery_attempted'
+                              ? 'bg-indigo-100 text-indigo-800'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}>
+                            {row.eventName}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-500 font-mono text-[11px]">{row.timestamp}</td>
+                        <td className="py-2.5 px-3 font-mono">{row.sipId}</td>
+                        <td className="py-2.5 px-3">{row.bankName}</td>
+                        <td className="py-2.5 px-3 text-rose-700 font-medium">
+                          {row.failureReason || '—'}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-medium">
+                          {row.amount ? `₹${row.amount.toLocaleString('en-IN')}` : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* Column Mapping & Preview Modal */}
+          {isImportModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+              <div className="w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Map Columns &amp; Preview CSV</h3>
+                    <p className="text-xs text-slate-500">File: {csvFileName} • Configure column field associations</p>
+                  </div>
+                  <button
+                    onClick={() => setIsImportModalOpen(false)}
+                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Column Mapping Grid */}
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-slate-800">1. Associate File Columns to Telemetry Schema:</div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    {['event_id', 'user_id', 'event_name', 'timestamp', 'sip_id', 'bank_name', 'failure_reason', 'amount'].map((field) => (
+                      <div key={field} className="space-y-1">
+                        <label className="font-semibold text-slate-700 flex items-center justify-between">
+                          <span>{field}</span>
+                          {(field === 'event_name' || field === 'timestamp') && (
+                            <span className="text-rose-600 font-bold">*</span>
+                          )}
+                        </label>
+                        <select
+                          value={columnMapping[field] || ''}
+                          onChange={(e) => setColumnMapping({ ...columnMapping, [field]: e.target.value })}
+                          className="w-full rounded border border-slate-300 bg-white p-1.5 text-xs text-slate-800"
+                        >
+                          <option value="">-- Unmapped --</option>
+                          {csvHeaders.map((h) => (
+                            <option key={h} value={h}>{h}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Table Preview */}
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-slate-800">2. File Preview (First 5 Rows):</div>
+                  <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                    <table className="w-full text-left text-xs text-slate-700">
+                      <thead className="bg-slate-100 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
+                        <tr>
+                          {csvHeaders.map((h, i) => (
+                            <th key={i} className="py-2 px-3">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {csvPreviewRows.map((row, rIdx) => (
+                          <tr key={rIdx}>
+                            {row.map((cell, cIdx) => (
+                              <td key={cIdx} className="py-2 px-3 font-mono text-[11px]">{cell}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setIsImportModalOpen(false)}
+                    className="rounded-lg border border-slate-300 px-3 py-1.5 font-semibold text-slate-600 hover:bg-slate-50 text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsImportModalOpen(false);
+                      handleExecuteImport();
+                    }}
+                    className="rounded-lg bg-blue-700 px-4 py-1.5 font-semibold text-white hover:bg-blue-800 text-xs shadow-sm"
+                  >
+                    Validate &amp; Ingest Records
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* TAB 5: 11-EVENT DATA DICTIONARY (ITEM 4)                              */}
+      {/* ===================================================================== */}
+      {activeTab === 'dictionary' && (
+        <div className="space-y-6">
+          <div className="rounded-xl border border-blue-200 bg-white p-5 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <BookOpen size={18} className="text-blue-700" />
+                  Telemetry Data Dictionary &amp; Event Specification (11 Events)
+                </h3>
+                <p className="text-xs text-slate-600">
+                  Standardized taxonomy across client apps, NPCI AutoPay gateway callbacks, BSE StAR MF presentation batches, and communication engines.
+                </p>
+              </div>
+
+              <div className="rounded-full bg-blue-100 text-blue-900 px-3 py-1 text-xs font-semibold">
+                11 Validated Events
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-1">
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
+                <span className="font-bold text-slate-800">Timestamp Format: </span>
+                <span className="font-mono text-blue-800">ISO 8601 UTC (YYYY-MM-DDTHH:mm:ssZ)</span>
+              </div>
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
+                <span className="font-bold text-slate-800">Participant ID Schema: </span>
+                <span className="font-mono text-blue-800">USR-[0-9]&#123;5&#125; (100% Anonymized)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Dictionary Table / Card Grid */}
+          <div className="space-y-4">
+            {TELEMETRY_DATA_DICTIONARY.map((dict) => (
+              <div
+                key={dict.name}
+                className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3.5"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-sm text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                      {dict.name}
+                    </span>
+                    <span className="text-xs font-bold text-slate-800">• {dict.label}</span>
+                  </div>
+
+                  <span className="rounded-full bg-slate-100 text-slate-700 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                    Stage: {dict.stage}
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-700 leading-relaxed">{dict.description}</p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="rounded bg-slate-50 p-2.5 border border-slate-100">
+                    <div className="font-bold text-slate-700 mb-1">Triggering Condition:</div>
+                    <div className="text-slate-600 text-[11px]">{dict.triggerCondition}</div>
+                  </div>
+
+                  <div className="rounded bg-slate-50 p-2.5 border border-slate-100">
+                    <div className="font-bold text-slate-700 mb-1">Required Properties:</div>
+                    <div className="flex flex-wrap gap-1">
+                      {dict.requiredProperties.map((p) => (
+                        <span key={p} className="font-mono text-[10px] bg-slate-200 px-1.5 py-0.5 rounded text-slate-800">
+                          {p}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded bg-slate-50 p-2.5 border border-slate-100">
+                    <div className="font-bold text-slate-700 mb-1">Optional Properties:</div>
+                    <div className="flex flex-wrap gap-1">
+                      {dict.optionalProperties.map((p) => (
+                        <span key={p} className="font-mono text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-600">
+                          {p}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Error codes if applicable */}
+                {dict.associatedErrorCodes && (
+                  <div className="rounded-lg bg-rose-50 border border-rose-200 p-2.5 text-xs text-rose-950 space-y-1">
+                    <div className="font-bold">NPCI / Bank Rejection Return Codes:</div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                      {dict.associatedErrorCodes.map((ec) => (
+                        <div key={ec.code} className="bg-white p-1.5 rounded border border-rose-200">
+                          <span className="font-mono font-bold text-rose-800">Code {ec.code}: </span>
+                          <span>{ec.meaning}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sample JSON Payload */}
+                <details className="text-xs text-slate-600 pt-1">
+                  <summary className="cursor-pointer font-semibold text-blue-700 hover:text-blue-800">
+                    View Standard JSON Telemetry Payload Sample
+                  </summary>
+                  <pre className="mt-2 rounded bg-slate-900 p-3 text-[11px] font-mono text-emerald-400 overflow-x-auto">
+                    {dict.exampleJson}
+                  </pre>
+                </details>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
       {/* ===================================================================== */}
-      {/* TAB 4: COHORT ANALYSIS & 12-MONTH RETENTION                            */}
+      {/* TAB 6: COHORT ANALYSIS & 12-MONTH RETENTION                            */}
       {/* ===================================================================== */}
       {activeTab === 'cohort' && (
         <div className="space-y-6">
@@ -1419,7 +1975,7 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
       )}
 
       {/* ===================================================================== */}
-      {/* TAB 5: HYPOTHESIS VALIDATION SYNTHESIS                                 */}
+      {/* TAB 7: HYPOTHESIS VALIDATION SYNTHESIS                                 */}
       {/* ===================================================================== */}
       {activeTab === 'validation' && (
         <div className="space-y-6">
@@ -1440,7 +1996,7 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
             </div>
 
             <p className="text-xs text-amber-900 leading-relaxed">
-              <strong>Academic &amp; Professional Rigour:</strong> While customer reviews and interview statements establish intense customer friction around bank mandates and bounce penalties, <strong>H1 cannot be labelled &ldquo;Validated&rdquo;</strong> without measured behavioral outcome data from a functional recovery prototype or production AB experiment proving that automated recovery actually improves active 12-month retention.
+              <strong>Academic &amp; Professional Rigour:</strong> While customer reviews, interview statements, and telemetry establish intense customer friction around bank mandates and bounce penalties, <strong>H1 cannot be labelled &ldquo;Validated&rdquo;</strong> without measured behavioral outcome data from a functional recovery prototype or production AB experiment proving that automated recovery actually improves active 12-month retention.
             </p>
           </div>
 
@@ -1549,7 +2105,7 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
       <div className="rounded-lg border border-slate-200 bg-white p-3.5 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Lock size={14} className="text-slate-400" />
-          <span><strong>Module 6 Compliance:</strong> Privacy safeguards enforced. All exports and reports sanitize customer identifiers.</span>
+          <span><strong>Research Governance Compliant:</strong> Anonymized IDs enforced. All actual uploaded data is segregated from demonstration benchmarks.</span>
         </div>
         <div className="text-[11px] text-slate-400">
           Target Graduation: 9 November 2026
