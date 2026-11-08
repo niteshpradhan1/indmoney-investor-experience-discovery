@@ -32,7 +32,11 @@ import {
   Search,
   Sliders,
   Database,
-  Info
+  Info,
+  ListFilter,
+  FileCheck2,
+  Calendar,
+  DollarSign
 } from 'lucide-react';
 import {
   InterviewParticipant,
@@ -57,7 +61,12 @@ import {
   SAMPLE_BENCHMARK_TELEMETRY,
   TELEMETRY_DATA_DICTIONARY,
   INITIAL_CONTRADICTORY_EVIDENCE,
-  INITIAL_QUALITATIVE_INSIGHTS
+  INITIAL_QUALITATIVE_INSIGHTS,
+  AUDITED_26_EVIDENCE_RECORDS,
+  AuditedReviewRecord,
+  FIRST_TIME_INVESTOR_INTERVIEW_GUIDE,
+  NeutralInterviewGuideQuestion,
+  TELEMETRY_SCHEMA_AUDIT
 } from '../data/phase5Data';
 
 // Standard 11 Telemetry Event Names
@@ -161,26 +170,13 @@ const INITIAL_PARTICIPANTS: InterviewParticipant[] = [
 
 export const InvestorInterviewsWorkspace: React.FC = () => {
   const fileInputId = useId();
-  const [activeTab, setActiveTab] = useState<'management' | 'insights' | 'contradictory' | 'telemetry' | 'dictionary' | 'cohort' | 'validation'>('insights');
+  const [activeTab, setActiveTab] = useState<'audit' | 'insights' | 'contradictory' | 'interview_guide' | 'telemetry' | 'cohort' | 'validation'>('audit');
 
-  // Module 1: Participants state
-  const [participants, setParticipants] = useState<InterviewParticipant[]>(INITIAL_PARTICIPANTS);
-  const [selectedParticipantId, setSelectedParticipantId] = useState<string>('INV-001');
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState<boolean>(false);
-  const [activeInterviewQ, setActiveInterviewQ] = useState<string>('Q1');
+  // Section 1: Evidence Audit State
+  const [auditFilter, setAuditFilter] = useState<'all' | 'Directly Supports H1' | 'Supporting Friction' | 'Contextual / Adjacent'>('all');
+  const [selectedAuditRecordId, setSelectedAuditRecordId] = useState<string>('IND-08924');
 
-  // Form state for registering new participant
-  const [newId, setNewId] = useState<string>(`INV-00${participants.length + 1}`);
-  const [newExperience, setNewExperience] = useState<InvestorExperienceLevel>('Novice');
-  const [newFirstTime, setNewFirstTime] = useState<boolean>(true);
-  const [newStatus, setNewStatus] = useState<SIPContinuityStatus>('Active');
-  const [newBank, setNewBank] = useState<string>('State Bank of India (PSU NACH)');
-  const [newDate, setNewDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [newConsent, setNewConsent] = useState<boolean>(true);
-  const [newNotes, setNewNotes] = useState<string>('');
-  const [newObservations, setNewObservations] = useState<string>('');
-
-  // Module 2: Qualitative Insights State
+  // Section 2: Qualitative Insights State
   const [qualitativeInsights, setQualitativeInsights] = useState<QualitativeInsight[]>(INITIAL_QUALITATIVE_INSIGHTS);
   const [tierFilter, setTierFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -196,11 +192,31 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
   const [insightThemeId, setInsightThemeId] = useState<string>('THEME-P3');
   const [insightContraCategory, setInsightContraCategory] = useState<ContradictoryCategory>('Discretionary Spending');
 
-  // Module 3: Telemetry State & Enhanced CSV Importer
+  // Section 3: Contradictory Evidence State
+  const [contradictoryRecords, setContradictoryRecords] = useState<ContradictoryEvidenceRecord[]>(INITIAL_CONTRADICTORY_EVIDENCE);
+
+  // Section 4: Interview Readiness & Participant Register
+  const [participants, setParticipants] = useState<InterviewParticipant[]>(INITIAL_PARTICIPANTS);
+  const [selectedParticipantId, setSelectedParticipantId] = useState<string>('INV-001');
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState<boolean>(false);
+  const [activeGuideQIndex, setActiveGuideQIndex] = useState<number>(0);
+
+  // Form state for registering new participant
+  const [newId, setNewId] = useState<string>(`INV-00${participants.length + 1}`);
+  const [newExperience, setNewExperience] = useState<InvestorExperienceLevel>('Novice');
+  const [newFirstTime, setNewFirstTime] = useState<boolean>(true);
+  const [newStatus, setNewStatus] = useState<SIPContinuityStatus>('Active');
+  const [newBank, setNewBank] = useState<string>('State Bank of India (PSU NACH)');
+  const [newDate, setNewDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [newConsent, setNewConsent] = useState<boolean>(true);
+  const [newNotes, setNewNotes] = useState<string>('');
+  const [newObservations, setNewObservations] = useState<string>('');
+
+  // Section 5: Telemetry State & Enhanced CSV Importer
   const [telemetryEvents, setTelemetryEvents] = useState<TelemetryEventRecord[]>(SAMPLE_BENCHMARK_TELEMETRY);
   const [telemetryDataSourceFilter, setTelemetryDataSourceFilter] = useState<'all' | 'Uploaded' | 'Demonstration'>('all');
   const [filterEventName, setFilterEventName] = useState<string>('all');
-  
+
   // CSV Import Workflow States
   const [csvRawText, setCsvRawText] = useState<string | null>(null);
   const [csvFileName, setCsvFileName] = useState<string | null>(null);
@@ -219,13 +235,7 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
   const [importResult, setImportResult] = useState<CsvImportResult | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
 
-  // Contradictory Evidence State
-  const [contradictoryRecords, setContradictoryRecords] = useState<ContradictoryEvidenceRecord[]>(INITIAL_CONTRADICTORY_EVIDENCE);
-
-  // Selected participant
-  const currentParticipant = participants.find((p) => p.id === selectedParticipantId) || participants[0];
-
-  // Handler to register a new participant
+  // Handlers
   const handleRegisterParticipant = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newConsent) {
@@ -251,31 +261,11 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
     setSelectedParticipantId(newRecord.id);
     setIsRegisterModalOpen(false);
 
-    // Reset form
     setNewId(`INV-00${participants.length + 2}`);
     setNewNotes('');
     setNewObservations('');
   };
 
-  // Handler to save interview response for current participant
-  const handleSaveInterviewResponse = (qId: string, answerText: string) => {
-    setParticipants((prev) =>
-      prev.map((p) => {
-        if (p.id === currentParticipant.id) {
-          return {
-            ...p,
-            responses: {
-              ...p.responses,
-              [qId]: answerText
-            }
-          };
-        }
-        return p;
-      })
-    );
-  };
-
-  // Handler to add a new qualitative insight
   const handleCreateQualitativeInsight = (e: React.FormEvent) => {
     e.preventDefault();
     if (!insightStatement.trim() || !insightInterpretation.trim()) {
@@ -305,13 +295,10 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
 
     setQualitativeInsights([newInsightRecord, ...qualitativeInsights]);
     setIsNewInsightModalOpen(false);
-
-    // Reset fields
     setInsightStatement('');
     setInsightInterpretation('');
   };
 
-  // Handler to toggle approval on insight
   const handleToggleInsightApproval = (id: string) => {
     setQualitativeInsights((prev) =>
       prev.map((ins) => {
@@ -333,7 +320,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
     );
   };
 
-  // CSV Template Downloader
   const handleDownloadCsvTemplate = () => {
     const headers = 'event_id,user_id,event_name,timestamp,sip_id,bank_name,failure_reason,amount\n';
     const sampleRows = [
@@ -353,7 +339,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  // Step 1: Handle File Selection & Parse Raw Header/Preview
   const handleSelectCsvFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -373,7 +358,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
       const headers = lines[0].split(',').map((h) => h.trim().replace(/^"|"$/g, ''));
       setCsvHeaders(headers);
 
-      // Auto-detect mappings
       const detectedMap: Record<string, string> = { ...columnMapping };
       const expectedFields = ['event_id', 'user_id', 'event_name', 'timestamp', 'sip_id', 'bank_name', 'failure_reason', 'amount'];
       expectedFields.forEach((field) => {
@@ -384,7 +368,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
       });
       setColumnMapping(detectedMap);
 
-      // Extract up to 5 preview rows
       const preview: string[][] = [];
       for (let i = 1; i < Math.min(lines.length, 6); i++) {
         preview.push(lines[i].split(',').map((c) => c.trim().replace(/^"|"$/g, '')));
@@ -395,14 +378,12 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
     reader.readAsText(file);
   };
 
-  // Step 2: Execute Validated Ingestion with Duplicate Detection & Error Reporting
   const handleExecuteImport = () => {
     if (!csvRawText) return;
 
     const lines = csvRawText.split(/\r?\n/).filter((l) => l.trim().length > 0);
     const headers = lines[0].split(',').map((h) => h.trim().replace(/^"|"$/g, ''));
 
-    // Resolve column indexes from mapping
     const eventIdIdx = headers.indexOf(columnMapping.event_id);
     const userIdIdx = headers.indexOf(columnMapping.user_id);
     const eventNameIdx = headers.indexOf(columnMapping.event_name);
@@ -435,7 +416,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
       const rawEventId = eventIdIdx !== -1 && cols[eventIdIdx] ? cols[eventIdIdx] : `EVT-UP-${Date.now()}-${i}`;
       const rawUserId = userIdIdx !== -1 && cols[userIdIdx] ? cols[userIdIdx] : `USR-${i + 1000}`;
 
-      // 1. Validation: Event Name must match 11 expected
       if (!validEventsList.includes(rawEventName)) {
         errors.push({
           rowNumber: rowNum,
@@ -446,7 +426,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
         continue;
       }
 
-      // 2. Validation: Timestamp ISO format check
       if (isNaN(Date.parse(rawTimestamp))) {
         errors.push({
           rowNumber: rowNum,
@@ -457,7 +436,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
         continue;
       }
 
-      // 3. Duplicate Detection
       const dedupeKey = `${rawUserId}-${rawEventName}-${rawTimestamp}`;
       if (existingEventIds.has(rawEventId) || existingKeys.has(dedupeKey)) {
         duplicates.push({
@@ -470,11 +448,9 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
         continue;
       }
 
-      // Add to set to prevent within-file dupes
       existingEventIds.add(rawEventId);
       existingKeys.add(dedupeKey);
 
-      // Record valid row
       imported.push({
         eventId: rawEventId,
         userId: rawUserId,
@@ -502,14 +478,20 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
     }
   };
 
-  // Filtered Insights
+  // Filtered lists
+  const filteredAuditedRecords = AUDITED_26_EVIDENCE_RECORDS.filter((r) => {
+    if (auditFilter === 'all') return true;
+    return r.h1Classification === auditFilter;
+  });
+
+  const selectedAuditRecord = AUDITED_26_EVIDENCE_RECORDS.find((r) => r.id === selectedAuditRecordId) || AUDITED_26_EVIDENCE_RECORDS[0];
+
   const displayedInsights = qualitativeInsights.filter((ins) => {
     if (tierFilter !== 'all' && ins.evidenceTier !== tierFilter) return false;
     if (statusFilter !== 'all' && ins.validationStatus !== statusFilter) return false;
     return true;
   });
 
-  // Filtered Telemetry Records
   const displayedTelemetry = telemetryEvents.filter((evt) => {
     if (filterEventName !== 'all' && evt.eventName !== filterEventName) return false;
     const isDemonstration = evt.eventId.startsWith('EVT-1') || evt.eventId.startsWith('EVT-2') || evt.eventId.startsWith('EVT-3');
@@ -517,6 +499,10 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
     if (telemetryDataSourceFilter === 'Demonstration' && !isDemonstration) return false;
     return true;
   });
+
+  const directCount = AUDITED_26_EVIDENCE_RECORDS.filter((r) => r.h1Classification === 'Directly Supports H1').length;
+  const supportingCount = AUDITED_26_EVIDENCE_RECORDS.filter((r) => r.h1Classification === 'Supporting Friction').length;
+  const contextualCount = AUDITED_26_EVIDENCE_RECORDS.filter((r) => r.h1Classification === 'Contextual / Adjacent').length;
 
   return (
     <div className="space-y-6">
@@ -533,28 +519,47 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                 H1 Status: NOT VALIDATED
               </span>
               <span className="text-xs text-slate-500 font-medium">
-                Evidence Governance Architecture
+                Research Evidence Audit &amp; Readiness
               </span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              Investor Interviews, Evidence Tiers &amp; Journey Telemetry
+              Evidence Audit, Interview Readiness &amp; Journey Telemetry
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 max-w-4xl">
-              Scientific validation protocol combining qualitative 10-question discovery interviews, structured <strong>Tier 1–3 Evidence Classification</strong>, <strong>Contradictory Evidence Tracking</strong>, and <strong>11-Event Journey Telemetry</strong> with rigorous column validation and duplicate detection.
+              Rigorous audit of the 26 approved customer evidence records, neutral interview protocol for first-time SIP investors, contradictory evidence tracker, and 11-event journey telemetry schema.
             </p>
           </div>
 
           <div className="flex sm:flex-col items-center sm:items-end gap-2 text-right">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Research Governance</div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
-              <ShieldCheck size={13} />
-              Human PM Review Enforced
-            </span>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Separated Statuses</div>
+            <div className="flex flex-col items-end gap-1">
+              <span className="inline-flex items-center gap-1 rounded bg-blue-100 text-blue-900 px-2 py-0.5 text-[11px] font-bold">
+                Problem Evidence: Audited (26)
+              </span>
+              <span className="inline-flex items-center gap-1 rounded bg-amber-100 text-amber-900 px-2 py-0.5 text-[11px] font-bold">
+                Solution Validation: Not Validated
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
         <div className="mt-6 flex flex-wrap gap-2 border-t border-slate-200/70 pt-4">
+          <button
+            onClick={() => setActiveTab('audit')}
+            className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+              activeTab === 'audit'
+                ? 'bg-blue-700 text-white shadow-sm'
+                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            <FileCheck2 size={15} />
+            <span>1. Evidence Audit (26 Approved)</span>
+            <span className={`rounded-full px-1.5 py-0.2 text-[10px] ${activeTab === 'audit' ? 'bg-blue-800 text-white' : 'bg-slate-100 text-slate-600'}`}>
+              14 Direct
+            </span>
+          </button>
+
           <button
             onClick={() => setActiveTab('insights')}
             className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
@@ -564,7 +569,7 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
             }`}
           >
             <ShieldCheck size={15} />
-            <span>Qualitative Insights &amp; Tiers</span>
+            <span>2. Qualitative Insights &amp; Tiers</span>
             <span className={`rounded-full px-1.5 py-0.2 text-[10px] ${activeTab === 'insights' ? 'bg-blue-800 text-white' : 'bg-slate-100 text-slate-600'}`}>
               {qualitativeInsights.length}
             </span>
@@ -579,24 +584,24 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
             }`}
           >
             <AlertCircle size={15} />
-            <span>Contradictory Evidence Tracker</span>
+            <span>3. Contradictory Evidence Tracker</span>
             <span className={`rounded-full px-1.5 py-0.2 text-[10px] ${activeTab === 'contradictory' ? 'bg-blue-800 text-white' : 'bg-slate-100 text-slate-600'}`}>
               4 Categories
             </span>
           </button>
 
           <button
-            onClick={() => setActiveTab('management')}
+            onClick={() => setActiveTab('interview_guide')}
             className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
-              activeTab === 'management'
+              activeTab === 'interview_guide'
                 ? 'bg-blue-700 text-white shadow-sm'
                 : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
           >
-            <Users size={15} />
-            <span>Participant Register &amp; Q&amp;A</span>
-            <span className={`rounded-full px-1.5 py-0.2 text-[10px] ${activeTab === 'management' ? 'bg-blue-800 text-white' : 'bg-slate-100 text-slate-600'}`}>
-              {participants.length}
+            <HelpCircle size={15} />
+            <span>4. First-Time SIP Interview Guide</span>
+            <span className={`rounded-full px-1.5 py-0.2 text-[10px] ${activeTab === 'interview_guide' ? 'bg-blue-800 text-white' : 'bg-slate-100 text-slate-600'}`}>
+              5 Questions
             </span>
           </button>
 
@@ -609,22 +614,10 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
             }`}
           >
             <Activity size={15} />
-            <span>Telemetry &amp; CSV Importer</span>
+            <span>5. Telemetry Readiness &amp; Ingestion</span>
             <span className={`rounded-full px-1.5 py-0.2 text-[10px] ${activeTab === 'telemetry' ? 'bg-blue-800 text-white' : 'bg-slate-100 text-slate-600'}`}>
-              {telemetryEvents.length} Events
+              11 Events
             </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('dictionary')}
-            className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
-              activeTab === 'dictionary'
-                ? 'bg-blue-700 text-white shadow-sm'
-                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-            }`}
-          >
-            <BookOpen size={15} />
-            <span>11-Event Data Dictionary</span>
           </button>
 
           <button
@@ -636,7 +629,7 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
             }`}
           >
             <BarChart3 size={15} />
-            <span>Cohort &amp; 12-Month Retention</span>
+            <span>6. Cohort Retention Analysis</span>
           </button>
 
           <button
@@ -648,17 +641,212 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
             }`}
           >
             <ShieldCheck size={15} />
-            <span>H1 Validation Synthesis</span>
+            <span>7. Scientific Validation Boundary</span>
           </button>
         </div>
       </div>
 
       {/* ===================================================================== */}
-      {/* TAB 1: QUALITATIVE INSIGHTS & EVIDENCE TIERS (ITEM 1 & 2)             */}
+      {/* TAB 1: EVIDENCE AUDIT (26 APPROVED RECORDS) (SECTION 1 & 2)           */}
+      {/* ===================================================================== */}
+      {activeTab === 'audit' && (
+        <div className="space-y-6">
+          {/* Audit Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total Audited Approved</div>
+              <div className="mt-1 text-2xl font-bold text-slate-900">{AUDITED_26_EVIDENCE_RECORDS.length}</div>
+              <div className="mt-1 text-xs text-slate-500">100% Human-Reviewed Records</div>
+            </div>
+
+            <div className="rounded-xl border border-blue-200 bg-white p-4 shadow-sm">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-blue-700">Directly Supports H1</div>
+              <div className="mt-1 text-2xl font-bold text-blue-900">{directCount}</div>
+              <div className="mt-1 text-xs text-slate-500">Explicit mandate &amp; bounce fines</div>
+            </div>
+
+            <div className="rounded-xl border border-indigo-200 bg-white p-4 shadow-sm">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-indigo-700">Supporting Friction</div>
+              <div className="mt-1 text-2xl font-bold text-indigo-900">{supportingCount}</div>
+              <div className="mt-1 text-xs text-slate-500">Setup duplicates &amp; bank switches</div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">Contextual / Adjacent</div>
+              <div className="mt-1 text-2xl font-bold text-slate-800">{contextualCount}</div>
+              <div className="mt-1 text-xs text-slate-500">KYC holds &amp; ledger allotment lag</div>
+            </div>
+          </div>
+
+          {/* Audit Master-Detail View */}
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-slate-200 bg-slate-50/50 gap-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <FileCheck2 size={18} className="text-blue-700" />
+                  Audit of Approved Customer Reviews (N=26)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Granular audit separating direct mandate debit failures from setup glitches and contextual KYC/allotment delays.
+                </p>
+              </div>
+
+              {/* Filter */}
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="font-semibold text-slate-600">Filter Classification:</span>
+                {[
+                  { id: 'all', label: `All (${AUDITED_26_EVIDENCE_RECORDS.length})` },
+                  { id: 'Directly Supports H1', label: `Direct (${directCount})` },
+                  { id: 'Supporting Friction', label: `Supporting (${supportingCount})` },
+                  { id: 'Contextual / Adjacent', label: `Contextual (${contextualCount})` }
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setAuditFilter(f.id as any)}
+                    className={`rounded px-2.5 py-1 text-xs font-semibold transition ${
+                      auditFilter === f.id
+                        ? 'bg-blue-700 text-white'
+                        : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
+              {/* Left Column: Record List */}
+              <div className="lg:col-span-5 max-h-[600px] overflow-y-auto divide-y divide-slate-100">
+                {filteredAuditedRecords.map((rec) => {
+                  const isSelected = rec.id === selectedAuditRecord.id;
+                  return (
+                    <div
+                      key={rec.id}
+                      onClick={() => setSelectedAuditRecordId(rec.id)}
+                      className={`p-3.5 transition cursor-pointer hover:bg-slate-50 space-y-1.5 ${
+                        isSelected ? 'bg-blue-50/60 border-l-4 border-blue-700' : ''
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-mono font-bold text-blue-900">{rec.id}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          rec.h1Classification === 'Directly Supports H1'
+                            ? 'bg-blue-100 text-blue-800'
+                            : rec.h1Classification === 'Supporting Friction'
+                            ? 'bg-indigo-100 text-indigo-800'
+                            : 'bg-slate-100 text-slate-700'
+                        }`}>
+                          {rec.h1Classification}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-700 line-clamp-2 italic">
+                        &ldquo;{rec.verbatimText}&rdquo;
+                      </p>
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
+                        <span>{rec.reviewDate.split(' ')[0]} • {rec.rating}★</span>
+                        <span className="font-medium text-slate-500">{rec.sourceReference}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Right Column: In-Depth Record Audit Detail */}
+              <div className="lg:col-span-7 p-6 space-y-4 max-h-[600px] overflow-y-auto bg-white">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-bold text-slate-900">{selectedAuditRecord.id}</span>
+                      <span className="text-xs text-slate-400">• {selectedAuditRecord.sourceReference}</span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-0.5">
+                      Published {selectedAuditRecord.reviewDate} • Rating: {selectedAuditRecord.rating}★ on {selectedAuditRecord.source}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="rounded-full bg-emerald-100 text-emerald-800 px-2.5 py-0.5 text-xs font-bold">
+                      {selectedAuditRecord.approvalStatus.toUpperCase()}
+                    </span>
+                    <span className="rounded-full bg-blue-100 text-blue-800 px-2.5 py-0.5 text-xs font-bold">
+                      {selectedAuditRecord.evidenceTier}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Original Statement (Verbatim) */}
+                <div className="space-y-1">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Original Verbatim Review Text (Immutable Customer Voice):
+                  </div>
+                  <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 text-xs italic text-slate-900 leading-relaxed">
+                    &ldquo;{selectedAuditRecord.verbatimText}&rdquo;
+                  </div>
+                </div>
+
+                {/* Classification & H1 Relevance */}
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="rounded bg-slate-50 p-3 border border-slate-100">
+                    <span className="font-bold text-slate-700 block mb-1">Assigned Categories:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedAuditRecord.humanCategories.map((c) => (
+                        <span key={c} className="bg-white border border-slate-200 px-2 py-0.5 rounded text-[11px] text-slate-800">
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded bg-slate-50 p-3 border border-slate-100">
+                    <span className="font-bold text-slate-700 block mb-1">H1 Relevance Audit:</span>
+                    <span className="font-bold text-blue-900">{selectedAuditRecord.h1Classification}</span>
+                  </div>
+                </div>
+
+                {/* Researcher Interpretation */}
+                <div className="space-y-1">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-indigo-800 flex items-center gap-1.5">
+                    <Sparkles size={13} className="text-indigo-600" />
+                    <span>Researcher Interpretation:</span>
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed bg-indigo-50/30 border border-indigo-100 p-3 rounded-lg">
+                    {selectedAuditRecord.researcherInterpretation}
+                  </p>
+                </div>
+
+                {/* Confidence & Limitations */}
+                <div className="space-y-1">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <Info size={13} />
+                    <span>Research Confidence &amp; Limitations:</span>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-200">
+                    {selectedAuditRecord.confidenceAndLimitations}
+                  </p>
+                </div>
+
+                {/* Human Governance Sign-off */}
+                <div className="rounded-lg border border-slate-200 p-3 text-xs text-slate-500 flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-slate-700">Audit Provenance: </span>
+                    Reviewed and approved by <strong>{selectedAuditRecord.reviewedBy}</strong>
+                  </div>
+                  <span className="text-[11px] bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-mono">
+                    Row #{selectedAuditRecord.originalRow}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* TAB 2: QUALITATIVE INSIGHTS & EVIDENCE TIERS (ITEM 2)                 */}
       {/* ===================================================================== */}
       {activeTab === 'insights' && (
         <div className="space-y-6">
-          {/* Tier Definitions Card */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div className="rounded-xl border border-blue-200 bg-white p-4 shadow-sm space-y-1">
               <div className="flex items-center justify-between">
@@ -762,7 +950,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                 key={insight.id}
                 className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3.5 transition hover:border-blue-300"
               >
-                {/* Header row: Participant ID, Evidence Tier, H1 Relevance, Validation Status */}
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2">
                     <span className="font-mono font-bold text-xs bg-slate-100 text-slate-900 px-2 py-0.5 rounded border border-slate-200">
@@ -809,7 +996,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Original Statement (Verbatim) */}
                 <div className="space-y-1">
                   <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     Original Statement / Event Reference:
@@ -819,7 +1005,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Researcher Interpretation */}
                 <div className="space-y-1">
                   <div className="text-[11px] font-bold uppercase tracking-wider text-indigo-800 flex items-center gap-1.5">
                     <Sparkles size={12} className="text-indigo-600" />
@@ -830,7 +1015,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Footer: Approval metadata & Actions */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-slate-700">Governance Sign-off:</span>
@@ -866,165 +1050,11 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
               </div>
             ))}
           </div>
-
-          {/* Record New Insight Modal */}
-          {isNewInsightModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-              <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900">Record Qualitative Insight</h3>
-                    <p className="text-xs text-slate-500">Enforces 7 mandatory research fields</p>
-                  </div>
-                  <button
-                    onClick={() => setIsNewInsightModalOpen(false)}
-                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-
-                <form onSubmit={handleCreateQualitativeInsight} className="space-y-3.5 text-xs text-slate-700">
-                  <div>
-                    <label className="font-semibold text-slate-800">Participant ID</label>
-                    <select
-                      value={insightParticipantId}
-                      onChange={(e) => setInsightParticipantId(e.target.value)}
-                      className="mt-1 w-full rounded border border-slate-300 p-2 bg-white font-mono"
-                    >
-                      {participants.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.id} ({p.experienceProfile} • {p.bankMandateExperience})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-800">Original Verbatim Statement / Event Reference</label>
-                    <textarea
-                      rows={3}
-                      required
-                      value={insightStatement}
-                      onChange={(e) => setInsightStatement(e.target.value)}
-                      placeholder="Exact wording from interview notes or verbatim quote..."
-                      className="mt-1 w-full rounded border border-slate-300 p-2 italic"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-800">Researcher Interpretation (PM Deduction)</label>
-                    <textarea
-                      rows={3}
-                      required
-                      value={insightInterpretation}
-                      onChange={(e) => setInsightInterpretation(e.target.value)}
-                      placeholder="What this reveals about customer friction, cognitive load, or failure recovery..."
-                      className="mt-1 w-full rounded border border-slate-300 p-2"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="font-semibold text-slate-800">Evidence Tier</label>
-                      <select
-                        value={insightTier}
-                        onChange={(e) => setInsightTier(e.target.value as EvidenceTier)}
-                        className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
-                      >
-                        <option value="Tier 1: Direct">Tier 1: Direct</option>
-                        <option value="Tier 2: Supporting">Tier 2: Supporting</option>
-                        <option value="Tier 3: Contextual">Tier 3: Contextual</option>
-                        <option value="Contradictory">Contradictory Evidence</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="font-semibold text-slate-800">H1 Relevance</label>
-                      <select
-                        value={insightH1Rel}
-                        onChange={(e) => setInsightH1Rel(e.target.value as H1RelevanceRating)}
-                        className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
-                      >
-                        <option value="Directly Supports H1">Directly Supports H1</option>
-                        <option value="Indirectly Related">Indirectly Related</option>
-                        <option value="Contradicts H1">Contradicts H1</option>
-                        <option value="Not Relevant">Not Relevant</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="font-semibold text-slate-800">Validation Status</label>
-                      <select
-                        value={insightStatus}
-                        onChange={(e) => setInsightStatus(e.target.value as InsightValidationStatus)}
-                        className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
-                      >
-                        <option value="Draft">Draft</option>
-                        <option value="Under Review">Under Review</option>
-                        <option value="Validated">Validated</option>
-                        <option value="Rejected">Rejected</option>
-                      </select>
-                    </div>
-
-                    {insightTier === 'Contradictory' ? (
-                      <div>
-                        <label className="font-semibold text-slate-800">Alternative Explanation</label>
-                        <select
-                          value={insightContraCategory}
-                          onChange={(e) => setInsightContraCategory(e.target.value as ContradictoryCategory)}
-                          className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
-                        >
-                          <option value="Discretionary Spending">Discretionary Spending</option>
-                          <option value="Insufficient Balance">Insufficient Balance</option>
-                          <option value="Changing Investment Priorities">Changing Priorities</option>
-                          <option value="Unrelated Technical Issue">Unrelated Tech Issue</option>
-                        </select>
-                      </div>
-                    ) : (
-                      <div>
-                        <label className="font-semibold text-slate-800">Linked Pain Point Theme</label>
-                        <select
-                          value={insightThemeId}
-                          onChange={(e) => setInsightThemeId(e.target.value)}
-                          className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
-                        >
-                          {PHASE_4_PAIN_POINT_THEMES.map((th) => (
-                            <option key={th.id} value={th.id}>
-                              {th.code}: {th.title}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-                    <button
-                      type="button"
-                      onClick={() => setIsNewInsightModalOpen(false)}
-                      className="rounded-lg border border-slate-300 px-3 py-1.5 font-semibold text-slate-600 hover:bg-slate-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="rounded-lg bg-blue-700 px-4 py-1.5 font-semibold text-white hover:bg-blue-800"
-                    >
-                      Save Qualitative Insight
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
       {/* ===================================================================== */}
-      {/* TAB 2: CONTRADICTORY EVIDENCE TRACKER (ITEM 3)                        */}
+      {/* TAB 3: CONTRADICTORY EVIDENCE TRACKER (SECTION 3)                     */}
       {/* ===================================================================== */}
       {activeTab === 'contradictory' && (
         <div className="space-y-6">
@@ -1036,12 +1066,11 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
               </h3>
             </div>
             <p className="text-xs text-amber-900 leading-relaxed">
-              Scientific objectivity requires capturing factors that cause SIP discontinuations independent of bank mandate friction.
-              These alternative causes must be isolated from the H1 retention model so we never claim mandate recovery will solve voluntary lifestyle or macro spending decisions.
+              To prevent confirmation bias, five distinct non-mandate drivers of SIP stoppage are actively tracked and evaluated.
+              We do not assume these alternative explanations are true without empirical backing, but they must be isolated before claiming mandate recovery impact.
             </p>
           </div>
 
-          {/* 4 Contradictory Categories Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {contradictoryRecords.map((item) => (
               <div
@@ -1061,7 +1090,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                   <h4 className="text-sm font-bold text-slate-900">{item.title}</h4>
                   <p className="text-xs text-slate-600 leading-relaxed">{item.description}</p>
 
-                  {/* Customer quote / behavior */}
                   <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs italic text-slate-800">
                     &ldquo;{item.customerQuoteOrBehavior}&rdquo;
                     {item.participantRef && (
@@ -1072,7 +1100,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                   </div>
                 </div>
 
-                {/* H1 Impact and Mitigation */}
                 <div className="space-y-2 pt-2 border-t border-slate-100 text-xs">
                   <div>
                     <span className="font-bold text-rose-800">H1 Impact Assessment: </span>
@@ -1090,63 +1117,26 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
       )}
 
       {/* ===================================================================== */}
-      {/* TAB 3: PARTICIPANT REGISTER & CONDUCT INTERVIEW                       */}
+      {/* TAB 4: FIRST-TIME SIP INTERVIEW GUIDE (SECTION 4)                     */}
       {/* ===================================================================== */}
-      {activeTab === 'management' && (
+      {activeTab === 'interview_guide' && (
         <div className="space-y-6">
-          {/* Summary KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Registered Participants</div>
-              <div className="mt-1 text-2xl font-bold text-slate-900">{participants.length}</div>
-              <div className="mt-1 text-xs text-slate-500">Anonymised IDs (INV-001+)</div>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Informed Consent</div>
-              <div className="mt-1 text-2xl font-bold text-emerald-700">100%</div>
-              <div className="mt-1 text-xs text-slate-500">Signed audio/notes consent</div>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">First-Time SIP Cohort</div>
-              <div className="mt-1 text-2xl font-bold text-blue-700">
-                {participants.filter((p) => p.firstTimeSip).length}
-                <span className="text-sm font-normal text-slate-400"> / {participants.length}</span>
-              </div>
-              <div className="mt-1 text-xs text-slate-500">High-risk bounce segment</div>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">SIP Continuity Status</div>
-              <div className="mt-1 text-sm font-semibold flex items-center gap-2">
-                <span className="text-emerald-700">{participants.filter((p) => p.sipStatus === 'Active').length} Active</span>
-                <span>•</span>
-                <span className="text-amber-700">{participants.filter((p) => p.sipStatus === 'Paused').length} Paused</span>
-                <span>•</span>
-                <span className="text-rose-700">{participants.filter((p) => p.sipStatus === 'Discontinued').length} Stopped</span>
-              </div>
-              <div className="mt-1 text-xs text-slate-500">Actual customer lifecycle</div>
-            </div>
-          </div>
-
-          {/* Participant Register Section */}
-          <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-b border-slate-200 bg-slate-50/50 gap-3">
+          <div className="rounded-xl border border-blue-200 bg-white p-5 shadow-sm space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Users size={18} className="text-blue-700" />
-                  Anonymised Participant Register (Module 1)
+                  <HelpCircle size={18} className="text-blue-700" />
+                  Neutral First-Time SIP Investor Interview Protocol
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Zero banking credentials or phone numbers recorded. Strictly anonymised investor profiles.
+                  Field-ready 5-question neutral guide designed specifically for novice investors who experienced an unexecuted instalment.
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsRegisterModalOpen(true)}
-                  className="flex items-center gap-1.5 rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 transition shadow-sm"
+                  className="flex items-center gap-1.5 rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 transition"
                 >
                   <Plus size={14} />
                   <span>Register Participant</span>
@@ -1154,235 +1144,122 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
               </div>
             </div>
 
+            <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-600">
+              <strong>Research Integrity Rule (Section 4):</strong> Zero fictional participants or synthetic responses are ever added. All interview answers must originate from live, consented participant sessions.
+            </div>
+          </div>
+
+          {/* 5 Neutral Questions Carousel / List */}
+          <div className="space-y-4">
+            {FIRST_TIME_INVESTOR_INTERVIEW_GUIDE.map((guideQ, idx) => (
+              <div
+                key={guideQ.questionNumber}
+                className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-700 text-xs font-bold text-white shrink-0">
+                      Q{guideQ.questionNumber}
+                    </span>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 leading-snug">
+                        &ldquo;{guideQ.questionText}&rdquo;
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1">
+                        <strong>Neutral Objective:</strong> {guideQ.neutralObjective}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="rounded bg-slate-100 text-slate-700 px-2 py-0.5 text-[10px] font-bold shrink-0">
+                    Question {idx + 1} of 5
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-1">
+                  <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-1">
+                    <span className="font-bold text-slate-800">Unbiased Probing Questions:</span>
+                    <ul className="list-disc pl-4 space-y-1 text-slate-600 text-[11px] pt-1">
+                      {guideQ.probingQuestions.map((pq, i) => (
+                        <li key={i}>{pq}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="rounded-lg bg-amber-50/50 border border-amber-200 p-3 space-y-1">
+                    <span className="font-bold text-amber-950 flex items-center gap-1">
+                      <ShieldCheck size={13} className="text-amber-700" />
+                      Bias Mitigation Protocol:
+                    </span>
+                    <p className="text-[11px] text-amber-900 leading-relaxed pt-1">
+                      {guideQ.biasMitigation}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Anonymised Participant Register Section */}
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50/50">
+              <div className="text-sm font-bold text-slate-900">
+                Registered Consented Participants ({participants.length} Anonymised)
+              </div>
+              <div className="text-xs text-emerald-700 font-semibold flex items-center gap-1">
+                <Lock size={12} /> 100% Informed Consent Verified
+              </div>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-700">
                 <thead className="bg-slate-100 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
                   <tr>
-                    <th className="py-3 px-4">Participant ID</th>
-                    <th className="py-3 px-4">Experience Tier</th>
-                    <th className="py-3 px-4">First-Time SIP</th>
-                    <th className="py-3 px-4">SIP Status</th>
-                    <th className="py-3 px-4">Bank Mandate Setup</th>
-                    <th className="py-3 px-4">Interview Date</th>
-                    <th className="py-3 px-4">Consent</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                    <th className="py-2.5 px-3">Participant ID</th>
+                    <th className="py-2.5 px-3">Experience</th>
+                    <th className="py-2.5 px-3">First-Time?</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3">Bank Mandate Experience</th>
+                    <th className="py-2.5 px-3">Interview Date</th>
+                    <th className="py-2.5 px-3">Consent Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {participants.map((p) => {
-                    const isSelected = p.id === selectedParticipantId;
-                    return (
-                      <tr
-                        key={p.id}
-                        className={`hover:bg-slate-50 transition cursor-pointer ${isSelected ? 'bg-blue-50/50' : ''}`}
-                        onClick={() => setSelectedParticipantId(p.id)}
-                      >
-                        <td className="py-3 px-4 font-mono font-bold text-blue-900 flex items-center gap-2">
-                          <span>{p.id}</span>
-                          {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-blue-700" />}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                            p.experienceProfile === 'Novice'
-                              ? 'bg-amber-100 text-amber-800'
-                              : p.experienceProfile === 'Intermediate'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-indigo-100 text-indigo-800'
-                          }`}>
-                            {p.experienceProfile}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          {p.firstTimeSip ? (
-                            <span className="text-emerald-700 font-semibold">Yes (First-time)</span>
-                          ) : (
-                            <span className="text-slate-500">No (Repeat)</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                            p.sipStatus === 'Active'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : p.sipStatus === 'Paused'
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-rose-100 text-rose-800'
-                          }`}>
-                            {p.sipStatus}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 font-medium text-slate-800">{p.bankMandateExperience}</td>
-                        <td className="py-3 px-4 text-slate-500">{p.interviewDate}</td>
-                        <td className="py-3 px-4">
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
-                            <CheckCircle2 size={13} />
-                            Obtained
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedParticipantId(p.id);
-                            }}
-                            className="rounded bg-slate-100 hover:bg-blue-100 text-blue-800 px-2 py-1 text-[11px] font-semibold transition"
-                          >
-                            Open Q&amp;A
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {participants.map((p) => (
+                    <tr key={p.id} className="hover:bg-slate-50">
+                      <td className="py-2.5 px-3 font-mono font-bold text-blue-900">{p.id}</td>
+                      <td className="py-2.5 px-3">{p.experienceProfile}</td>
+                      <td className="py-2.5 px-3">{p.firstTimeSip ? 'Yes (First-time)' : 'No (Repeat)'}</td>
+                      <td className="py-2.5 px-3">
+                        <span className="font-semibold text-slate-900">{p.sipStatus}</span>
+                      </td>
+                      <td className="py-2.5 px-3">{p.bankMandateExperience}</td>
+                      <td className="py-2.5 px-3 text-slate-500">{p.interviewDate}</td>
+                      <td className="py-2.5 px-3 text-emerald-700 font-semibold">✓ Verified</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
-
-          {/* Conduct Interview Q&A for Selected Participant */}
-          {currentParticipant && (
-            <div className="rounded-xl border border-blue-200 bg-white p-5 shadow-sm space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="rounded bg-blue-100 text-blue-900 font-mono font-bold px-2 py-0.5 text-xs">
-                      {currentParticipant.id}
-                    </span>
-                    <span className="text-xs text-slate-500">• {currentParticipant.bankMandateExperience}</span>
-                    <span className="text-xs text-slate-500">• Interviewed {currentParticipant.interviewDate}</span>
-                  </div>
-                  <h3 className="mt-1 text-lg font-bold text-slate-900">
-                    Conduct Neutral Interview: 10 Field-Tested Questions
-                  </h3>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-slate-500">Progress:</span>
-                  <span className="font-bold text-blue-800">
-                    {Object.keys(currentParticipant.responses || {}).length} / 10 Questions Answered
-                  </span>
-                </div>
-              </div>
-
-              {/* Question Tabs */}
-              <div className="flex gap-1.5 overflow-x-auto pb-2 border-b border-slate-100">
-                {DISCOVERY_QA_DATA.map((q) => {
-                  const hasAnswer = Boolean(currentParticipant.responses?.[q.id]);
-                  const isCurrent = activeInterviewQ === q.id;
-                  return (
-                    <button
-                      key={q.id}
-                      onClick={() => setActiveInterviewQ(q.id)}
-                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition ${
-                        isCurrent
-                          ? 'bg-blue-700 text-white shadow-sm'
-                          : hasAnswer
-                          ? 'bg-blue-50 text-blue-900 border border-blue-200'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      <span>{q.id}</span>
-                      {hasAnswer && <Check size={12} className={isCurrent ? 'text-white' : 'text-blue-700'} />}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Active Question Capture */}
-              {(() => {
-                const qItem = DISCOVERY_QA_DATA.find((q) => q.id === activeInterviewQ) || DISCOVERY_QA_DATA[0];
-                const currentAnswer = currentParticipant.responses?.[qItem.id] || '';
-
-                return (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700">
-                            {qItem.id} • {qItem.primary_theme}
-                          </span>
-                          <span className="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-medium">
-                            Neutral Prompt
-                          </span>
-                        </div>
-                        <h4 className="text-base font-bold text-slate-900 leading-snug">
-                          &ldquo;{qItem.question}&rdquo;
-                        </h4>
-                        <div className="text-xs text-slate-600 pt-1">
-                          <strong>Research Purpose:</strong> {qItem.purpose}
-                        </div>
-                      </div>
-
-                      <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 p-3.5 text-xs space-y-1.5">
-                        <div className="font-semibold text-indigo-900 flex items-center gap-1.5">
-                          <Sparkles size={14} className="text-indigo-600" />
-                          <span>Expected Empirical Answer Synthesis</span>
-                        </div>
-                        <p className="text-slate-600 leading-relaxed">
-                          {qItem.answer_synthesis}
-                        </p>
-                      </div>
-
-                      <div className="rounded-lg border border-slate-200 p-3.5 space-y-2">
-                        <div className="text-xs font-semibold text-slate-700">Top Empirical Response Options:</div>
-                        <div className="space-y-1.5">
-                          {qItem.survey_options.map((opt, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => handleSaveInterviewResponse(qItem.id, opt)}
-                              className="w-full text-left rounded border border-slate-100 bg-white hover:bg-blue-50 p-2 text-xs text-slate-700 transition flex items-start gap-2"
-                            >
-                              <span className="font-mono text-[10px] text-blue-700 font-bold mt-0.5">{idx + 1}.</span>
-                              <span>{opt}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
-                          <span>Verbatim Participant Response</span>
-                          <span className="text-[10px] font-normal text-slate-500">Preserve exact wording</span>
-                        </label>
-                        <textarea
-                          rows={4}
-                          value={currentAnswer}
-                          onChange={(e) => handleSaveInterviewResponse(qItem.id, e.target.value)}
-                          placeholder="Record exact investor statement verbatim. Do not insert researcher deductions here..."
-                          className="w-full rounded-lg border border-slate-300 p-3 text-xs text-slate-900 focus:border-blue-700 font-sans"
-                        />
-                      </div>
-
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 text-xs space-y-2">
-                        <div className="font-bold text-slate-800">Transfer directly to Insights Engine:</div>
-                        <p className="text-[11px] text-slate-600">
-                          To classify this statement under <strong>Tier 1 / Tier 2 / Tier 3 / Contradictory</strong> with researcher approval, switch to the <em>Qualitative Insights &amp; Tiers</em> tab and click <em>Record New Insight</em>.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
         </div>
       )}
 
       {/* ===================================================================== */}
-      {/* TAB 4: TELEMETRY & ENHANCED CSV IMPORTER (ITEMS 4, 5 & 6)             */}
+      {/* TAB 5: TELEMETRY READINESS & INGESTION (SECTION 5)                     */}
       {/* ===================================================================== */}
       {activeTab === 'telemetry' && (
         <div className="space-y-6">
-          {/* Importer Controls Card */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+          {/* Telemetry Schema Audit Card */}
+          <div className="rounded-xl border border-blue-200 bg-white p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200 gap-3">
               <div>
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <Activity size={18} className="text-blue-700" />
-                  Journey Telemetry &amp; Validated CSV Importer (Module 3)
+                  Telemetry Schema Readiness &amp; Provenance Audit (Section 5)
                 </h3>
                 <p className="text-xs text-slate-600">
-                  Upload CSV records with automated column mapping, table preview, duplicate detection, and format verification.
+                  Strictly distinguishes proposed schema events from imported real events, benchmark simulations, and missing data fields.
                 </p>
               </div>
 
@@ -1397,112 +1274,148 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
               </div>
             </div>
 
-            {/* Upload Box */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/70 p-6 flex flex-col items-center justify-center text-center space-y-2">
-                <Upload size={24} className="text-blue-700" />
-                <div className="text-xs font-bold text-slate-800">Upload Anonymised Telemetry File (.CSV)</div>
-                <p className="text-[11px] text-slate-500 max-w-sm">
-                  Includes automated column mapping, validation against 11 NPCI events, duplicate detection, and import error logs.
-                </p>
-
-                <div className="pt-2">
-                  <label htmlFor={fileInputId} className="cursor-pointer rounded-lg bg-blue-700 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-800 transition shadow-sm">
-                    Select CSV File to Map &amp; Ingest
-                  </label>
-                  <input
-                    id={fileInputId}
-                    type="file"
-                    accept=".csv"
-                    onChange={handleSelectCsvFile}
-                    className="hidden"
-                  />
-                </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
+                <div className="font-bold text-slate-500 uppercase text-[10px]">Proposed Schema Events</div>
+                <div className="text-xl font-bold text-slate-900 mt-1">{TELEMETRY_SCHEMA_AUDIT.totalProposedEvents} Events</div>
+                <div className="text-[10px] text-slate-500 mt-0.5">Full NPCI/SIP lifecycle</div>
               </div>
 
-              {/* Research Integrity Distinction: Uploaded vs Demonstration */}
-              <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col justify-between space-y-3">
-                <div>
-                  <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                    <ShieldCheck size={14} className="text-emerald-600" />
-                    <span>Research Integrity Guardrail (Item 6)</span>
-                  </div>
-                  <p className="mt-1 text-[11px] text-slate-500">
-                    Never generate fictional events. Actual uploaded CSV records are strictly differentiated from demonstration benchmark data.
-                  </p>
-                </div>
+              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
+                <div className="font-bold text-emerald-700 uppercase text-[10px]">Imported Real Events</div>
+                <div className="text-xl font-bold text-emerald-900 mt-1">{importResult ? importResult.validRowsCount : 0} Real</div>
+                <div className="text-[10px] text-emerald-800 mt-0.5">Strictly awaits CSV upload</div>
+              </div>
 
-                <div className="space-y-2">
-                  <button
-                    onClick={() => {
-                      setTelemetryEvents(SAMPLE_BENCHMARK_TELEMETRY);
-                      setImportResult(null);
-                    }}
-                    className="w-full rounded-lg bg-slate-100 hover:bg-slate-200 py-2 text-xs font-semibold text-slate-800 transition"
-                  >
-                    Reset Benchmark Telemetry (N=20)
-                  </button>
+              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
+                <div className="font-bold text-amber-800 uppercase text-[10px]">Demonstration Benchmark</div>
+                <div className="text-xl font-bold text-amber-950 mt-1">{SAMPLE_BENCHMARK_TELEMETRY.length} Events</div>
+                <div className="text-[10px] text-amber-800 mt-0.5">Clearly tagged benchmark batch</div>
+              </div>
 
-                  <button
-                    onClick={() => {
-                      setTelemetryEvents([]);
-                      setImportResult(null);
-                    }}
-                    className="w-full rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 py-1.5 text-xs font-semibold text-rose-700 transition"
-                  >
-                    Clear All Records
-                  </button>
-                </div>
+              <div className="rounded-lg bg-rose-50 border border-rose-200 p-3">
+                <div className="font-bold text-rose-800 uppercase text-[10px]">Missing Data Fields</div>
+                <div className="text-xl font-bold text-rose-950 mt-1">4 Fields</div>
+                <div className="text-[10px] text-rose-800 mt-0.5">Identified in audit</div>
               </div>
             </div>
 
-            {/* Import Result Notification */}
-            {importResult && (
-              <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                    <CheckCircle2 size={16} className="text-emerald-600" />
-                    Import Batch Report: {importResult.totalRowsProcessed} Rows Processed
+            {/* Missing Data Fields Identified */}
+            <div className="rounded-lg bg-rose-50/50 border border-rose-200 p-3.5 space-y-1.5 text-xs">
+              <div className="font-bold text-rose-950 flex items-center gap-1.5">
+                <AlertTriangle size={14} className="text-rose-700" />
+                <span>Identified Missing Telemetry Fields in Production Pipeline:</span>
+              </div>
+              <ul className="list-disc pl-5 space-y-1 text-slate-700 text-[11px]">
+                {TELEMETRY_SCHEMA_AUDIT.missingDataFieldsIdentified.map((field, i) => (
+                  <li key={i}>{field}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Upload Box */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/70 p-6 flex flex-col items-center justify-center text-center space-y-2">
+              <Upload size={24} className="text-blue-700" />
+              <div className="text-xs font-bold text-slate-800">Upload Anonymised Telemetry File (.CSV)</div>
+              <p className="text-[11px] text-slate-500 max-w-sm">
+                Includes automated column mapping, validation against 11 NPCI events, duplicate detection, and import error logs.
+              </p>
+
+              <div className="pt-2">
+                <label htmlFor={fileInputId} className="cursor-pointer rounded-lg bg-blue-700 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-800 transition shadow-sm">
+                  Select CSV File to Map &amp; Ingest
+                </label>
+                <input
+                  id={fileInputId}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleSelectCsvFile}
+                  className="hidden"
+                />
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col justify-between space-y-3">
+              <div>
+                <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                  <ShieldCheck size={14} className="text-emerald-600" />
+                  <span>Research Integrity Guardrail</span>
+                </div>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Never present test or sample events as production telemetry. Actual uploaded CSV records are strictly differentiated.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    setTelemetryEvents(SAMPLE_BENCHMARK_TELEMETRY);
+                    setImportResult(null);
+                  }}
+                  className="w-full rounded-lg bg-slate-100 hover:bg-slate-200 py-2 text-xs font-semibold text-slate-800 transition"
+                >
+                  Reset Benchmark Telemetry (N=20)
+                </button>
+
+                <button
+                  onClick={() => {
+                    setTelemetryEvents([]);
+                    setImportResult(null);
+                  }}
+                  className="w-full rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 py-1.5 text-xs font-semibold text-rose-700 transition"
+                >
+                  Clear All Records
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Import Result Notification */}
+          {importResult && (
+            <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <CheckCircle2 size={16} className="text-emerald-600" />
+                  Import Batch Report: {importResult.totalRowsProcessed} Rows Processed
+                </span>
+                <div className="flex gap-2">
+                  <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">
+                    {importResult.validRowsCount} Valid Ingested
                   </span>
-                  <div className="flex gap-2">
-                    <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">
-                      {importResult.validRowsCount} Valid Ingested
-                    </span>
-                    <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold">
-                      {importResult.duplicatesCount} Duplicates Skipped
-                    </span>
-                    <span className="bg-rose-100 text-rose-800 px-2 py-0.5 rounded font-bold">
-                      {importResult.errorCount} Errors Flagged
-                    </span>
+                  <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold">
+                    {importResult.duplicatesCount} Duplicates Skipped
+                  </span>
+                  <span className="bg-rose-100 text-rose-800 px-2 py-0.5 rounded font-bold">
+                    {importResult.errorCount} Errors Flagged
+                  </span>
+                </div>
+              </div>
+
+              {importResult.duplicates.length > 0 && (
+                <div className="rounded bg-amber-50 border border-amber-200 p-2 text-amber-900 text-[11px]">
+                  <strong>Duplicate Detection Notice:</strong> Skipped {importResult.duplicates.length} duplicate event(s) matching existing event_id or user+event+timestamp tuples.
+                </div>
+              )}
+
+              {importResult.errors.length > 0 && (
+                <div className="rounded bg-rose-50 border border-rose-200 p-3 text-rose-900 text-[11px] space-y-1">
+                  <div className="font-bold flex items-center gap-1">
+                    <AlertTriangle size={13} />
+                    Validation Errors Encountered:
+                  </div>
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {importResult.errors.map((err, i) => (
+                      <div key={i}>
+                        • Row {err.rowNumber} [{err.field}]: {err.message}
+                      </div>
+                    ))}
                   </div>
                 </div>
-
-                {/* Duplicates notice */}
-                {importResult.duplicates.length > 0 && (
-                  <div className="rounded bg-amber-50 border border-amber-200 p-2 text-amber-900 text-[11px]">
-                    <strong>Duplicate Detection Notice:</strong> Skipped {importResult.duplicates.length} duplicate event(s) matching existing event_id or user+event+timestamp tuples.
-                  </div>
-                )}
-
-                {/* Errors Table */}
-                {importResult.errors.length > 0 && (
-                  <div className="rounded bg-rose-50 border border-rose-200 p-3 text-rose-900 text-[11px] space-y-1">
-                    <div className="font-bold flex items-center gap-1">
-                      <AlertTriangle size={13} />
-                      Validation Errors Encountered:
-                    </div>
-                    <div className="max-h-32 overflow-y-auto space-y-1">
-                      {importResult.errors.map((err, i) => (
-                        <div key={i}>
-                          • Row {err.rowNumber} [{err.field}]: {err.message}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Telemetry Filter & Table */}
           <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -1512,7 +1425,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-3 text-xs">
-                {/* Provenance Filter */}
                 <div className="flex items-center gap-1.5">
                   <span className="text-slate-500">Source:</span>
                   <select
@@ -1526,7 +1438,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
                   </select>
                 </div>
 
-                {/* Event Name Filter */}
                 <div className="flex items-center gap-1.5">
                   <span className="text-slate-500">Event:</span>
                   <select
@@ -1603,213 +1514,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
               </table>
             </div>
           </div>
-
-          {/* Column Mapping & Preview Modal */}
-          {isImportModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-              <div className="w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900">Map Columns &amp; Preview CSV</h3>
-                    <p className="text-xs text-slate-500">File: {csvFileName} • Configure column field associations</p>
-                  </div>
-                  <button
-                    onClick={() => setIsImportModalOpen(false)}
-                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-
-                {/* Column Mapping Grid */}
-                <div className="space-y-2">
-                  <div className="text-xs font-bold text-slate-800">1. Associate File Columns to Telemetry Schema:</div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                    {['event_id', 'user_id', 'event_name', 'timestamp', 'sip_id', 'bank_name', 'failure_reason', 'amount'].map((field) => (
-                      <div key={field} className="space-y-1">
-                        <label className="font-semibold text-slate-700 flex items-center justify-between">
-                          <span>{field}</span>
-                          {(field === 'event_name' || field === 'timestamp') && (
-                            <span className="text-rose-600 font-bold">*</span>
-                          )}
-                        </label>
-                        <select
-                          value={columnMapping[field] || ''}
-                          onChange={(e) => setColumnMapping({ ...columnMapping, [field]: e.target.value })}
-                          className="w-full rounded border border-slate-300 bg-white p-1.5 text-xs text-slate-800"
-                        >
-                          <option value="">-- Unmapped --</option>
-                          {csvHeaders.map((h) => (
-                            <option key={h} value={h}>{h}</option>
-                          ))}
-                        </select>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Table Preview */}
-                <div className="space-y-2">
-                  <div className="text-xs font-bold text-slate-800">2. File Preview (First 5 Rows):</div>
-                  <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                    <table className="w-full text-left text-xs text-slate-700">
-                      <thead className="bg-slate-100 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
-                        <tr>
-                          {csvHeaders.map((h, i) => (
-                            <th key={i} className="py-2 px-3">{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {csvPreviewRows.map((row, rIdx) => (
-                          <tr key={rIdx}>
-                            {row.map((cell, cIdx) => (
-                              <td key={cIdx} className="py-2 px-3 font-mono text-[11px]">{cell}</td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-                  <button
-                    type="button"
-                    onClick={() => setIsImportModalOpen(false)}
-                    className="rounded-lg border border-slate-300 px-3 py-1.5 font-semibold text-slate-600 hover:bg-slate-50 text-xs"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsImportModalOpen(false);
-                      handleExecuteImport();
-                    }}
-                    className="rounded-lg bg-blue-700 px-4 py-1.5 font-semibold text-white hover:bg-blue-800 text-xs shadow-sm"
-                  >
-                    Validate &amp; Ingest Records
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ===================================================================== */}
-      {/* TAB 5: 11-EVENT DATA DICTIONARY (ITEM 4)                              */}
-      {/* ===================================================================== */}
-      {activeTab === 'dictionary' && (
-        <div className="space-y-6">
-          <div className="rounded-xl border border-blue-200 bg-white p-5 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <BookOpen size={18} className="text-blue-700" />
-                  Telemetry Data Dictionary &amp; Event Specification (11 Events)
-                </h3>
-                <p className="text-xs text-slate-600">
-                  Standardized taxonomy across client apps, NPCI AutoPay gateway callbacks, BSE StAR MF presentation batches, and communication engines.
-                </p>
-              </div>
-
-              <div className="rounded-full bg-blue-100 text-blue-900 px-3 py-1 text-xs font-semibold">
-                11 Validated Events
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-1">
-              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
-                <span className="font-bold text-slate-800">Timestamp Format: </span>
-                <span className="font-mono text-blue-800">ISO 8601 UTC (YYYY-MM-DDTHH:mm:ssZ)</span>
-              </div>
-              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
-                <span className="font-bold text-slate-800">Participant ID Schema: </span>
-                <span className="font-mono text-blue-800">USR-[0-9]&#123;5&#125; (100% Anonymized)</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Dictionary Table / Card Grid */}
-          <div className="space-y-4">
-            {TELEMETRY_DATA_DICTIONARY.map((dict) => (
-              <div
-                key={dict.name}
-                className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3.5"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-sm text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                      {dict.name}
-                    </span>
-                    <span className="text-xs font-bold text-slate-800">• {dict.label}</span>
-                  </div>
-
-                  <span className="rounded-full bg-slate-100 text-slate-700 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-                    Stage: {dict.stage}
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-700 leading-relaxed">{dict.description}</p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div className="rounded bg-slate-50 p-2.5 border border-slate-100">
-                    <div className="font-bold text-slate-700 mb-1">Triggering Condition:</div>
-                    <div className="text-slate-600 text-[11px]">{dict.triggerCondition}</div>
-                  </div>
-
-                  <div className="rounded bg-slate-50 p-2.5 border border-slate-100">
-                    <div className="font-bold text-slate-700 mb-1">Required Properties:</div>
-                    <div className="flex flex-wrap gap-1">
-                      {dict.requiredProperties.map((p) => (
-                        <span key={p} className="font-mono text-[10px] bg-slate-200 px-1.5 py-0.5 rounded text-slate-800">
-                          {p}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="rounded bg-slate-50 p-2.5 border border-slate-100">
-                    <div className="font-bold text-slate-700 mb-1">Optional Properties:</div>
-                    <div className="flex flex-wrap gap-1">
-                      {dict.optionalProperties.map((p) => (
-                        <span key={p} className="font-mono text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-600">
-                          {p}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Error codes if applicable */}
-                {dict.associatedErrorCodes && (
-                  <div className="rounded-lg bg-rose-50 border border-rose-200 p-2.5 text-xs text-rose-950 space-y-1">
-                    <div className="font-bold">NPCI / Bank Rejection Return Codes:</div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                      {dict.associatedErrorCodes.map((ec) => (
-                        <div key={ec.code} className="bg-white p-1.5 rounded border border-rose-200">
-                          <span className="font-mono font-bold text-rose-800">Code {ec.code}: </span>
-                          <span>{ec.meaning}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Sample JSON Payload */}
-                <details className="text-xs text-slate-600 pt-1">
-                  <summary className="cursor-pointer font-semibold text-blue-700 hover:text-blue-800">
-                    View Standard JSON Telemetry Payload Sample
-                  </summary>
-                  <pre className="mt-2 rounded bg-slate-900 p-3 text-[11px] font-mono text-emerald-400 overflow-x-auto">
-                    {dict.exampleJson}
-                  </pre>
-                </details>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
@@ -1818,7 +1522,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
       {/* ===================================================================== */}
       {activeTab === 'cohort' && (
         <div className="space-y-6">
-          {/* Retention Definition Guardrail Callout */}
           <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm flex items-start gap-3">
             <ShieldCheck size={20} className="text-blue-700 shrink-0 mt-0.5" />
             <div className="space-y-1 text-xs">
@@ -1832,9 +1535,7 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
             </div>
           </div>
 
-          {/* Cohort Metric Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Cohort 1: First-Time SIP vs Experienced SIP */}
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                 <h4 className="text-sm font-bold text-slate-900">
@@ -1882,7 +1583,6 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
               </div>
             </div>
 
-            {/* Cohort 2: Mandate Success vs Mandate Failure */}
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                 <h4 className="text-sm font-bold text-slate-900">
@@ -1920,62 +1620,11 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
               </div>
             </div>
           </div>
-
-          {/* Repeat Failures Breakdown & Pause vs Cancellation */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-              <h4 className="text-sm font-bold text-slate-900">
-                Repeat Debit Failure Distribution
-              </h4>
-              <p className="text-xs text-slate-600">
-                How multiple consecutive mandate debit failures escalate churn risk:
-              </p>
-
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between p-2 rounded bg-slate-50 border border-slate-100">
-                  <span className="font-medium text-slate-800">1 Debit Failure</span>
-                  <span className="font-bold text-amber-700">42% Churn Risk</span>
-                </div>
-                <div className="flex items-center justify-between p-2 rounded bg-slate-50 border border-slate-100">
-                  <span className="font-medium text-slate-800">2 Consecutive Failures</span>
-                  <span className="font-bold text-rose-600">79% Churn Risk</span>
-                </div>
-                <div className="flex items-center justify-between p-2 rounded bg-rose-50 border border-rose-200">
-                  <span className="font-medium text-rose-950">3 Consecutive Failures (Auto-Cancel)</span>
-                  <span className="font-bold text-rose-700">98% Permanent Churn</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-              <h4 className="text-sm font-bold text-slate-900">
-                SIP Pauses vs Cancellations Breakdown
-              </h4>
-              <p className="text-xs text-slate-600">
-                Distinguishing voluntary flexibility from involuntary termination:
-              </p>
-
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between p-2 rounded bg-blue-50 border border-blue-200">
-                  <span className="font-medium text-blue-900">Voluntary Temporary Pauses (1–3 mos)</span>
-                  <span className="font-bold text-blue-800">14% of drop-offs</span>
-                </div>
-                <div className="flex items-center justify-between p-2 rounded bg-rose-50 border border-rose-200">
-                  <span className="font-medium text-rose-900">Involuntary Cancellation Post-Debit Failure</span>
-                  <span className="font-bold text-rose-700">68% of drop-offs</span>
-                </div>
-                <div className="flex items-center justify-between p-2 rounded bg-slate-50 border border-slate-200">
-                  <span className="font-medium text-slate-800">Proactive Intentional Cancellation</span>
-                  <span className="font-bold text-slate-700">18% of drop-offs</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
       {/* ===================================================================== */}
-      {/* TAB 7: HYPOTHESIS VALIDATION SYNTHESIS                                 */}
+      {/* TAB 7: SCIENTIFIC VALIDATION BOUNDARY (SECTION 6 & 7)                 */}
       {/* ===================================================================== */}
       {activeTab === 'validation' && (
         <div className="space-y-6">
@@ -2020,102 +1669,449 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
             </div>
           </div>
 
-          {/* Three Evidence Pillars */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 shadow-sm">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-blue-700">Pillar 1: Review Corpus</div>
-              <div className="text-xl font-bold text-slate-900">26 Approved DIRECT</div>
-              <p className="text-xs text-slate-600">
-                Ground truth evidence from Play Store &amp; App Store. Validated complaints of bank fines, silent drops, and duplicate deductions.
-              </p>
-            </div>
+          {/* Research Readiness Synthesis Grid (8 Deliverables) */}
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FileText size={18} className="text-blue-700" />
+              Phase 5 Research Readiness Synthesis
+            </h3>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 shadow-sm">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-blue-700">Pillar 2: Investor Interviews</div>
-              <div className="text-xl font-bold text-slate-900">{participants.length} Active Participants</div>
-              <p className="text-xs text-slate-600">
-                10-question neutral protocol confirms novice investors churn after unexpected bounce charges and lack of instant retry options.
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 shadow-sm">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-blue-700">Pillar 3: Journey Telemetry</div>
-              <div className="text-xl font-bold text-slate-900">54.6% Retention Gap</div>
-              <p className="text-xs text-slate-600">
-                Cohort telemetry illustrates that investors experiencing mandate failures suffer a 54.6% lower 12-month active retention rate.
-              </p>
-            </div>
-          </div>
-
-          {/* What Supports H1 vs What Limits H1 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="rounded-xl border border-emerald-200 bg-white p-5 shadow-sm space-y-3">
-              <div className="flex items-center gap-2 border-b border-emerald-100 pb-2">
-                <CheckCircle2 size={16} className="text-emerald-700" />
-                <h4 className="text-sm font-bold text-emerald-950">Findings That Support H1</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 space-y-1">
+                <div className="font-bold text-slate-900">1. Evidence Audit Results</div>
+                <p className="text-slate-600">26 approved records audited: 14 Directly Support H1, 7 represent Supporting Friction, and 5 represent Contextual KYC/allotment delays.</p>
               </div>
 
-              <ul className="space-y-2 text-xs text-slate-700">
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-emerald-700">•</span>
-                  <span><strong>Bank Mandate Failure is Involuntary:</strong> Over 68% of cancellations happen following an unrecovered debit failure, not voluntary termination.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-emerald-700">•</span>
-                  <span><strong>Instant UPI Solves Salary Mismatch:</strong> Investors with failed mandates express strong willingness to pay via UPI if reminded on salary day.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-emerald-700">•</span>
-                  <span><strong>Bounce Charge Terror:</strong> Fear of recurring ₹295–₹590 fees is the primary catalyst for immediate app deletion among PSU bank holders.</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="rounded-xl border border-rose-200 bg-white p-5 shadow-sm space-y-3">
-              <div className="flex items-center gap-2 border-b border-rose-100 pb-2">
-                <AlertTriangle size={16} className="text-rose-700" />
-                <h4 className="text-sm font-bold text-rose-950">Limitations &amp; Missing Data</h4>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 space-y-1">
+                <div className="font-bold text-slate-900">2. H1-Supporting Evidence</div>
+                <p className="text-slate-600">Explicit proof of uncommunicated bank mandate bounce penalties (₹295–₹4,000), silent drops, and demand for instant UPI retry.</p>
               </div>
 
-              <ul className="space-y-2 text-xs text-slate-700">
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-rose-700">•</span>
-                  <span><strong>Missing Bank Return Code Telemetry:</strong> Cannot observe exact NPCI codes (e.g. 03 Account Closed vs 04 Insufficient Funds) from reviews alone.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-rose-700">•</span>
-                  <span><strong>Unmeasured Prototype Conversion:</strong> Have not yet experimentally verified what percentage of users will complete the 3-click instant retry flow.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-rose-700">•</span>
-                  <span><strong>Exchange Settlement Constraints:</strong> BSE StAR MF cut-off rules (2:30 PM) may limit same-day NAV allocation even if UPI succeeds.</span>
-                </li>
-              </ul>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 space-y-1">
+                <div className="font-bold text-slate-900">3. Contradictory Evidence</div>
+                <p className="text-slate-600">4 non-mandate drivers isolated: Discretionary festival spending, personal cash-flow deficits, asset migration, and CKYC regulatory freezes.</p>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 space-y-1">
+                <div className="font-bold text-slate-900">4. Missing Research Evidence</div>
+                <p className="text-slate-600">Granular NPCI return codes (01 vs 03 vs 04), bank bounce fee receipts, and prototype task completion rates await live testing.</p>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 space-y-1">
+                <div className="font-bold text-slate-900">5. Interview Readiness</div>
+                <p className="text-slate-600">5-question neutral interview guide formulated for first-time SIP investors with unbiased probing and bias mitigations.</p>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 space-y-1">
+                <div className="font-bold text-slate-900">6. Telemetry Readiness</div>
+                <p className="text-slate-600">11-event schema audited with duplicate detection and column mapping; benchmark sample clearly tagged and segregated from real data.</p>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 space-y-1">
+                <div className="font-bold text-slate-900">7. Research Limitations</div>
+                <p className="text-slate-600">Public app reviews lack clearing timestamps and cannot verify bank fee reversals; qualitative feedback cannot prove retention uplift.</p>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 space-y-1">
+                <div className="font-bold text-slate-900">8. Recommended Next Steps</div>
+                <p className="text-slate-600">Conduct 5 neutral interviews with PSU bank first-time investors; test the 5-screen Recovery Prototype with 5 users before graduation.</p>
+              </div>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* 4 Steps to Graduation Validation */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 space-y-3">
-            <h4 className="text-sm font-bold text-slate-900">
-              Prerequisites to Transition H1 from &ldquo;Not Validated&rdquo; to &ldquo;Validated&rdquo; (Graduation Criteria)
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
-              <div className="rounded bg-white p-3 border border-slate-200 space-y-1">
-                <div className="font-bold text-blue-900">1. Complete Interviews</div>
-                <p className="text-[11px] text-slate-600">Conduct at least 5 structured discovery interviews across novice and PSU cohorts.</p>
+      {/* Modal: Register Participant */}
+      {isRegisterModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Register Interview Participant</h3>
+                <p className="text-xs text-slate-500">Strictly anonymised investor metadata (Section 4)</p>
               </div>
-              <div className="rounded bg-white p-3 border border-slate-200 space-y-1">
-                <div className="font-bold text-blue-900">2. Ingest Live Telemetry</div>
-                <p className="text-[11px] text-slate-600">Map real production drop-off events from mandate registration to instalment debit.</p>
+              <button
+                onClick={() => setIsRegisterModalOpen(false)}
+                className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleRegisterParticipant} className="space-y-3.5 text-xs text-slate-700">
+              <div>
+                <label className="font-semibold text-slate-800">Participant ID (Anonymised)</label>
+                <input
+                  type="text"
+                  required
+                  value={newId}
+                  onChange={(e) => setNewId(e.target.value)}
+                  className="mt-1 w-full rounded border border-slate-300 p-2 font-mono"
+                  placeholder="e.g. INV-004"
+                />
               </div>
-              <div className="rounded bg-white p-3 border border-slate-200 space-y-1">
-                <div className="font-bold text-blue-900">3. Usability Prototype Testing</div>
-                <p className="text-[11px] text-slate-600">Test the 5-screen Recovery Prototype with 5 investors to measure task completion rate.</p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-800">Experience Tier</label>
+                  <select
+                    value={newExperience}
+                    onChange={(e) => setNewExperience(e.target.value as InvestorExperienceLevel)}
+                    className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
+                  >
+                    <option value="Novice">Novice (&lt; 6 mos)</option>
+                    <option value="Intermediate">Intermediate (6–24 mos)</option>
+                    <option value="Experienced">Experienced (2+ yrs)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-slate-800">SIP Continuity Status</label>
+                  <select
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value as SIPContinuityStatus)}
+                    className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Paused">Paused</option>
+                    <option value="Discontinued">Discontinued / Stopped</option>
+                  </select>
+                </div>
               </div>
-              <div className="rounded bg-white p-3 border border-slate-200 space-y-1">
-                <div className="font-bold text-blue-900">4. Measure Recovery Rate</div>
-                <p className="text-[11px] text-slate-600">Demonstrate simulated or live 48-hour recovery rate above the 40% success threshold.</p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-800">First-Time SIP Investor?</label>
+                  <select
+                    value={newFirstTime ? 'yes' : 'no'}
+                    onChange={(e) => setNewFirstTime(e.target.value === 'yes')}
+                    className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
+                  >
+                    <option value="yes">Yes (First-Time)</option>
+                    <option value="no">No (Repeat / Seasoned)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-slate-800">Interview Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={newDate}
+                    onChange={(e) => setNewDate(e.target.value)}
+                    className="mt-1 w-full rounded border border-slate-300 p-2"
+                  />
+                </div>
               </div>
+
+              <div>
+                <label className="font-semibold text-slate-800">Bank Mandate Experience</label>
+                <input
+                  type="text"
+                  required
+                  value={newBank}
+                  onChange={(e) => setNewBank(e.target.value)}
+                  placeholder="e.g. State Bank of India (PSU NACH), HDFC Netbanking"
+                  className="mt-1 w-full rounded border border-slate-300 p-2"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-800">Initial Interview Notes</label>
+                <textarea
+                  rows={2}
+                  value={newNotes}
+                  onChange={(e) => setNewNotes(e.target.value)}
+                  placeholder="Context of interview, participant background..."
+                  className="mt-1 w-full rounded border border-slate-300 p-2"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-800">Researcher Observations</label>
+                <textarea
+                  rows={2}
+                  value={newObservations}
+                  onChange={(e) => setNewObservations(e.target.value)}
+                  placeholder="Non-verbal cues, hesitation around bank bounce penalties..."
+                  className="mt-1 w-full rounded border border-slate-300 p-2"
+                />
+              </div>
+
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 space-y-2">
+                <label className="flex items-start gap-2 font-semibold text-emerald-900 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newConsent}
+                    onChange={(e) => setNewConsent(e.target.checked)}
+                    className="mt-0.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>Informed Consent Verified (Section 4 Compliance)</span>
+                </label>
+                <p className="text-[11px] text-emerald-800 pl-5">
+                  I certify that informed consent was obtained. No bank credentials, OTPs, or debit card CVVs are stored.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsRegisterModalOpen(false)}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 font-semibold text-slate-600 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-blue-700 px-4 py-1.5 font-semibold text-white hover:bg-blue-800"
+                >
+                  Save Participant
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: New Qualitative Insight */}
+      {isNewInsightModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Record Qualitative Insight</h3>
+                <p className="text-xs text-slate-500">Enforces 7 mandatory research fields</p>
+              </div>
+              <button
+                onClick={() => setIsNewInsightModalOpen(false)}
+                className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateQualitativeInsight} className="space-y-3.5 text-xs text-slate-700">
+              <div>
+                <label className="font-semibold text-slate-800">Participant ID</label>
+                <select
+                  value={insightParticipantId}
+                  onChange={(e) => setInsightParticipantId(e.target.value)}
+                  className="mt-1 w-full rounded border border-slate-300 p-2 bg-white font-mono"
+                >
+                  {participants.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.id} ({p.experienceProfile} • {p.bankMandateExperience})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-800">Original Verbatim Statement / Event Reference</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={insightStatement}
+                  onChange={(e) => setInsightStatement(e.target.value)}
+                  placeholder="Exact wording from interview notes or verbatim quote..."
+                  className="mt-1 w-full rounded border border-slate-300 p-2 italic"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-800">Researcher Interpretation (PM Deduction)</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={insightInterpretation}
+                  onChange={(e) => setInsightInterpretation(e.target.value)}
+                  placeholder="What this reveals about customer friction, cognitive load, or failure recovery..."
+                  className="mt-1 w-full rounded border border-slate-300 p-2"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-800">Evidence Tier</label>
+                  <select
+                    value={insightTier}
+                    onChange={(e) => setInsightTier(e.target.value as EvidenceTier)}
+                    className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
+                  >
+                    <option value="Tier 1: Direct">Tier 1: Direct</option>
+                    <option value="Tier 2: Supporting">Tier 2: Supporting</option>
+                    <option value="Tier 3: Contextual">Tier 3: Contextual</option>
+                    <option value="Contradictory">Contradictory Evidence</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-slate-800">H1 Relevance</label>
+                  <select
+                    value={insightH1Rel}
+                    onChange={(e) => setInsightH1Rel(e.target.value as H1RelevanceRating)}
+                    className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
+                  >
+                    <option value="Directly Supports H1">Directly Supports H1</option>
+                    <option value="Indirectly Related">Indirectly Related</option>
+                    <option value="Contradicts H1">Contradicts H1</option>
+                    <option value="Not Relevant">Not Relevant</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-800">Validation Status</label>
+                  <select
+                    value={insightStatus}
+                    onChange={(e) => setInsightStatus(e.target.value as InsightValidationStatus)}
+                    className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
+                  >
+                    <option value="Draft">Draft</option>
+                    <option value="Under Review">Under Review</option>
+                    <option value="Validated">Validated</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+                </div>
+
+                {insightTier === 'Contradictory' ? (
+                  <div>
+                    <label className="font-semibold text-slate-800">Alternative Explanation</label>
+                    <select
+                      value={insightContraCategory}
+                      onChange={(e) => setInsightContraCategory(e.target.value as ContradictoryCategory)}
+                      className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
+                    >
+                      <option value="Discretionary Spending">Discretionary Spending</option>
+                      <option value="Insufficient Balance">Insufficient Balance</option>
+                      <option value="Changing Investment Priorities">Changing Priorities</option>
+                      <option value="Unrelated Technical Issue">Unrelated Tech Issue</option>
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="font-semibold text-slate-800">Linked Pain Point Theme</label>
+                    <select
+                      value={insightThemeId}
+                      onChange={(e) => setInsightThemeId(e.target.value)}
+                      className="mt-1 w-full rounded border border-slate-300 p-2 bg-white"
+                    >
+                      {PHASE_4_PAIN_POINT_THEMES.map((th) => (
+                        <option key={th.id} value={th.id}>
+                          {th.code}: {th.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsNewInsightModalOpen(false)}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 font-semibold text-slate-600 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-blue-700 px-4 py-1.5 font-semibold text-white hover:bg-blue-800"
+                >
+                  Save Qualitative Insight
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: CSV Column Mapping & Preview */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Map Columns &amp; Preview CSV</h3>
+                <p className="text-xs text-slate-500">File: {csvFileName} • Configure column field associations</p>
+              </div>
+              <button
+                onClick={() => setIsImportModalOpen(false)}
+                className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-xs font-bold text-slate-800">1. Associate File Columns to Telemetry Schema:</div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                {['event_id', 'user_id', 'event_name', 'timestamp', 'sip_id', 'bank_name', 'failure_reason', 'amount'].map((field) => (
+                  <div key={field} className="space-y-1">
+                    <label className="font-semibold text-slate-700 flex items-center justify-between">
+                      <span>{field}</span>
+                      {(field === 'event_name' || field === 'timestamp') && (
+                        <span className="text-rose-600 font-bold">*</span>
+                      )}
+                    </label>
+                    <select
+                      value={columnMapping[field] || ''}
+                      onChange={(e) => setColumnMapping({ ...columnMapping, [field]: e.target.value })}
+                      className="w-full rounded border border-slate-300 bg-white p-1.5 text-xs text-slate-800"
+                    >
+                      <option value="">-- Unmapped --</option>
+                      {csvHeaders.map((h) => (
+                        <option key={h} value={h}>{h}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-xs font-bold text-slate-800">2. File Preview (First 5 Rows):</div>
+              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                <table className="w-full text-left text-xs text-slate-700">
+                  <thead className="bg-slate-100 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
+                    <tr>
+                      {csvHeaders.map((h, i) => (
+                        <th key={i} className="py-2 px-3">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {csvPreviewRows.map((row, rIdx) => (
+                      <tr key={rIdx}>
+                        {row.map((cell, cIdx) => (
+                          <td key={cIdx} className="py-2 px-3 font-mono text-[11px]">{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setIsImportModalOpen(false)}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 font-semibold text-slate-600 hover:bg-slate-50 text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsImportModalOpen(false);
+                  handleExecuteImport();
+                }}
+                className="rounded-lg bg-blue-700 px-4 py-1.5 font-semibold text-white hover:bg-blue-800 text-xs shadow-sm"
+              >
+                Validate &amp; Ingest Records
+              </button>
             </div>
           </div>
         </div>
@@ -2125,7 +2121,7 @@ export const InvestorInterviewsWorkspace: React.FC = () => {
       <div className="rounded-lg border border-slate-200 bg-white p-3.5 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Lock size={14} className="text-slate-400" />
-          <span><strong>Research Governance Compliant:</strong> Anonymized IDs enforced. All actual uploaded data is segregated from demonstration benchmarks.</span>
+          <span><strong>Research Readiness Enforced:</strong> Anonymized IDs only. Problem evidence audited (26 records); solution validation strictly awaiting controlled testing.</span>
         </div>
         <div className="text-[11px] text-slate-400">
           Target Graduation: 9 November 2026

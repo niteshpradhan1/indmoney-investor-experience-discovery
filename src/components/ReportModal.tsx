@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Printer, Award, ShieldCheck, CheckCircle2, AlertTriangle, Calendar } from 'lucide-react';
+import { X, Printer, Award, ShieldCheck, CheckCircle2, AlertTriangle, Calendar, FileText } from 'lucide-react';
 import { H1_DETAILS, PERSONAS, GRADUATION_MILESTONES } from '../data/h1WorkspaceData';
 import { INITIAL_OPPORTUNITIES } from '../data/opportunitiesData';
 import { INITIAL_THEMES } from '../data/themesData';
@@ -273,6 +273,61 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose }) => 
                   <span className="font-bold text-slate-900 block">4. Measured Outcomes</span>
                   <span>Empirical metrics from upcoming usability trials and A/B experiments.</span>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 7: Phase 5 Research Readiness & Evidence Audit Report */}
+          <div className="space-y-3.5 border-t-2 border-slate-900 pt-5 text-xs text-slate-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
+                <FileText size={16} className="text-blue-700" />
+                <span>7. Phase 5 Research Readiness &amp; Evidence Audit Report</span>
+              </div>
+              <span className="rounded-full bg-blue-100 border border-blue-300 px-3 py-0.5 text-xs font-bold text-blue-900">
+                Audit Completed (8 Pillars)
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-1">
+                <div className="font-bold text-slate-900">1. Evidence Audit Results</div>
+                <p className="text-[11px] text-slate-600">All 26 human-approved records audited: 14 Directly Support H1, 7 represent Supporting Friction, and 5 represent Contextual KYC or allotment delays.</p>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-1">
+                <div className="font-bold text-slate-900">2. H1-Supporting Evidence</div>
+                <p className="text-[11px] text-slate-600">Documented mandate bounce charges (₹295–₹4,000), silent AutoPay drops with funds present, and explicit user demand for instant UPI retry.</p>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-1">
+                <div className="font-bold text-slate-900">3. Contradictory Evidence</div>
+                <p className="text-[11px] text-slate-600">Captured 5 alternative explanations: insufficient account balance, discretionary holiday spending, changing investment goals, user-initiated pauses, and CKYC holds.</p>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-1">
+                <div className="font-bold text-slate-900">4. Missing Research Evidence</div>
+                <p className="text-[11px] text-slate-600">Granular NPCI return codes (Code 01 vs 03 vs 04), partner bank fee debit receipts, and measured prototype recovery conversion rates.</p>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-1">
+                <div className="font-bold text-slate-900">5. Interview Readiness</div>
+                <p className="text-[11px] text-slate-600">5-question neutral interview guide formulated for first-time SIP investors with unbiased probing questions and bias mitigations.</p>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-1">
+                <div className="font-bold text-slate-900">6. Telemetry Readiness</div>
+                <p className="text-[11px] text-slate-600">11-event schema audited with duplicate detection and column mapping; benchmark sample clearly tagged and segregated from real data.</p>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-1">
+                <div className="font-bold text-slate-900">7. Research Limitations</div>
+                <p className="text-[11px] text-slate-600">Public app reviews lack clearing timestamps and cannot verify bank fee reversals; qualitative feedback cannot prove retention uplift.</p>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-1">
+                <div className="font-bold text-slate-900">8. Recommended Next Steps</div>
+                <p className="text-[11px] text-slate-600">Conduct 5 neutral interviews with PSU bank first-time investors; test the 5-screen Recovery Prototype with 5 users before graduation.</p>
               </div>
             </div>
           </div>
