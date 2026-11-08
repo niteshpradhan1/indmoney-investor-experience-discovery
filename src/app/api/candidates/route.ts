@@ -64,8 +64,12 @@ export async function GET(request: NextRequest) {
 
     // Map database shape to ReviewRecord interface
     const mapped: ReviewRecord[] = candidates.map((c: any) => {
-      const ai = c.ai_classification_suggestions || {};
-      const human = c.human_review_decisions || {};
+      const ai = Array.isArray(c.ai_classification_suggestions)
+        ? (c.ai_classification_suggestions[0] || {})
+        : (c.ai_classification_suggestions || {});
+      const human = Array.isArray(c.human_review_decisions)
+        ? (c.human_review_decisions[0] || {})
+        : (c.human_review_decisions || {});
 
       return {
         id: c.id,

@@ -130,14 +130,42 @@ ALTER TABLE dataset_imports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE original_reviews ENABLE ROW LEVEL SECURITY;
 
 -- Read policies: Public read access for research review
+DROP POLICY IF EXISTS "Public Read Candidates" ON candidate_reviews;
 CREATE POLICY "Public Read Candidates" ON candidate_reviews FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read AI Suggestions" ON ai_classification_suggestions;
 CREATE POLICY "Public Read AI Suggestions" ON ai_classification_suggestions FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read Human Decisions" ON human_review_decisions;
 CREATE POLICY "Public Read Human Decisions" ON human_review_decisions FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read Audited Evidence" ON audited_evidence_records;
 CREATE POLICY "Public Read Audited Evidence" ON audited_evidence_records FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read Decision History" ON research_decision_history;
 CREATE POLICY "Public Read Decision History" ON research_decision_history FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read Dataset Imports" ON dataset_imports;
 CREATE POLICY "Public Read Dataset Imports" ON dataset_imports FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read Original Reviews" ON original_reviews;
 CREATE POLICY "Public Read Original Reviews" ON original_reviews FOR SELECT USING (true);
 
 -- Write policies: Enable write via authenticated clients or service role
+DROP POLICY IF EXISTS "Public Write Human Decisions" ON human_review_decisions;
 CREATE POLICY "Public Write Human Decisions" ON human_review_decisions FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public Write History" ON research_decision_history;
 CREATE POLICY "Public Write History" ON research_decision_history FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public Write Candidates" ON candidate_reviews;
+CREATE POLICY "Public Write Candidates" ON candidate_reviews FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public Write AI Suggestions" ON ai_classification_suggestions;
+CREATE POLICY "Public Write AI Suggestions" ON ai_classification_suggestions FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public Write Audited Evidence" ON audited_evidence_records;
+CREATE POLICY "Public Write Audited Evidence" ON audited_evidence_records FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public Write Dataset Imports" ON dataset_imports;
+CREATE POLICY "Public Write Dataset Imports" ON dataset_imports FOR ALL USING (true) WITH CHECK (true);

@@ -23,7 +23,9 @@ import {
   Eye,
   ArrowRight,
   Upload,
-  Server
+  Server,
+  CloudUpload,
+  RefreshCw
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -99,6 +101,7 @@ export const EvidenceReviewWorkspace: React.FC<EvidenceReviewWorkspaceProps> = (
   const [exportNotification, setExportNotification] = useState<string | null>(null);
   const [backendSyncStatus, setBackendSyncStatus] = useState<string>('Syncing...');
   const [isImporting, setIsImporting] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Sync with API on mount
@@ -386,45 +389,135 @@ export const EvidenceReviewWorkspace: React.FC<EvidenceReviewWorkspaceProps> = (
     }
   };
 
+  // Action: Export JSON Backup of Local Decisions (Safe local preservation)
+  const handleExportDecisionsBackup = () => {
+    try {
+      const reviewedRecords = records.filter(
+        (r) => r.humanReviewStatus !== 'pending' || r.humanCategories.length > 0 || (r.researcherNotes && r.researcherNotes.trim() !== '')
+      );
+      const backupPayload = {
+        exportedAt: new Date().toISOString(),
+        totalReviewedDecisions: reviewedRecords.length,
+        candidateIds: reviewedRecords.map((r) => r.id),
+        decisions: reviewedRecords.map((r) => ({
+          candidateId: r.id,
+          originalRow: r.originalRow,
+          humanReviewStatus: r.humanReviewStatus,
+          humanCategories: r.humanCategories,
+          humanEvidenceStrength: r.humanEvidenceStrength,
+          researcherNotes: r.researcherNotes,
+          reviewedBy: r.reviewedBy || 'Lead PM Researcher',
+          reviewedAt: r.reviewedAt || new Date().toISOString()
+        }))
+      };
+
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backupPayload, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', dataStr);
+      downloadAnchor.setAttribute('download', `INDMoney_Researcher_Decisions_Backup_${new Date().toISOString().substring(0, 10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+
+      setExportNotification(`Exported backup of ${reviewedRecords.length} researcher decisions to JSON.`);
+      setTimeout(() => setExportNotification(null), 4000);
+    } catch (err: any) {
+      alert(`Failed to export JSON backup: ${err?.message || 'Unknown error'}`);
+    }
+  };
+
+  // Action: Synchronize Local Decisions to Persistent Cloud (Supabase)
+  const handleSyncLocalDecisions = async () => {
+    setIsSyncing(true);
+    setExportNotification('Checking local research decisions for cloud migration...');
+
+    try {
+      const reviewedRecords = records.filter(
+        (r) => r.humanReviewStatus !== 'pending' || r.humanCategories.length > 0 || (r.researcherNotes && r.researcherNotes.trim() !== '')
+      );
+
+      if (reviewedRecords.length === 0) {
+        setExportNotification('No active human decisions or notes to migrate. Cloud dataset is in sync.');
+        setTimeout(() => setExportNotification(null), 4000);
+        setIsSyncing(false);
+        return;
+      }
+
+      // Check unique candidate IDs to prevent duplicates
+      const uniqueIds = new Set(reviewedRecords.map((r) => r.id));
+      if (uniqueIds.size !== reviewedRecords.length) {
+        console.warn('Duplicate candidate IDs detected in local records set.');
+      }
+
+      const success = await batchUpdateCandidateReviews(reviewedRecords, 'LOCAL_STORAGE_MIGRATION');
+      if (success) {
+        setExportNotification(`Successfully migrated ${reviewedRecords.length} local researcher decisions to persistent backend storage.`);
+        const refreshed = await fetchCandidateReviews();
+        if (refreshed.data.length > 0) {
+          setRecords(refreshed.data);
+          if (refreshed.source === 'supabase_postgres') {
+            setBackendSyncStatus('Supabase PostgreSQL (Live)');
+          }
+        }
+      } else {
+        alert('Cloud sync failed or backend is running in offline mode. Local records remain preserved safely.');
+      }
+    } catch (err: any) {
+      alert(`Migration error: ${err?.message || 'Network error'}`);
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setExportNotification(null), 5000);
+    }
+  };
+
   // Action: Auto-triage High-Confidence candidates
-  const handleQuickTriageHighConfidence = () => {
+  const handleQuickTriageHighConfidence = async () => {
     const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
-    setRecords((prev) =>
-      prev.map((rec) => {
-        if (rec.humanReviewStatus !== 'pending') return rec;
-        // If it's a DIRECT candidate with explicit SIP language, approve it with AI suggestions
-        if (rec.aiSuggestion.evidenceStrength === 'DIRECT') {
-          return {
-            ...rec,
-            humanReviewStatus: 'approved',
-            humanCategories: [...rec.aiSuggestion.categories],
-            humanEvidenceStrength: 'DIRECT',
-            reviewedAt: now,
-            reviewedBy: 'Lead PM Researcher',
-            researcherNotes: 'Batch approved: explicit SIP instalment debit failure confirmed in review text.'
-          };
-        }
-        // If it's clearly insufficient general bank linking without mandate/SIP, mark as rejected for H1
-        if (
-          rec.aiSuggestion.evidenceStrength === 'INSUFFICIENT' &&
-          rec.aiSuggestion.categories.includes('Bank account linking problem') &&
-          !rec.reviewText.toLowerCase().includes('sip') &&
-          !rec.reviewText.toLowerCase().includes('mandate')
-        ) {
-          return {
-            ...rec,
-            humanReviewStatus: 'rejected',
-            humanCategories: ['Bank account linking problem'],
-            humanEvidenceStrength: 'INSUFFICIENT',
-            reviewedAt: now,
-            reviewedBy: 'Lead PM Researcher',
-            researcherNotes: 'Screened out of H1: upstream bank account addition/KYC issue, not an active SIP mandate debit failure.'
-          };
-        }
-        return rec;
-      })
-    );
-    setExportNotification('Batch triage executed for high-confidence DIRECT and non-H1 onboarding records.');
+    const updatedBatch: ReviewRecord[] = [];
+
+    const updated = records.map((rec) => {
+      if (rec.humanReviewStatus !== 'pending') return rec;
+      // If it's a DIRECT candidate with explicit SIP language, approve it with AI suggestions
+      if (rec.aiSuggestion.evidenceStrength === 'DIRECT') {
+        const item: ReviewRecord = {
+          ...rec,
+          humanReviewStatus: 'approved',
+          humanCategories: [...rec.aiSuggestion.categories],
+          humanEvidenceStrength: 'DIRECT',
+          reviewedAt: now,
+          reviewedBy: 'Lead PM Researcher',
+          researcherNotes: 'Batch approved: explicit SIP instalment debit failure confirmed in review text.'
+        };
+        updatedBatch.push(item);
+        return item;
+      }
+      // If it's clearly insufficient general bank linking without mandate/SIP, mark as rejected for H1
+      if (
+        rec.aiSuggestion.evidenceStrength === 'INSUFFICIENT' &&
+        rec.aiSuggestion.categories.includes('Bank account linking problem') &&
+        !rec.reviewText.toLowerCase().includes('sip') &&
+        !rec.reviewText.toLowerCase().includes('mandate')
+      ) {
+        const item: ReviewRecord = {
+          ...rec,
+          humanReviewStatus: 'rejected',
+          humanCategories: ['Bank account linking problem'],
+          humanEvidenceStrength: 'INSUFFICIENT',
+          reviewedAt: now,
+          reviewedBy: 'Lead PM Researcher',
+          researcherNotes: 'Screened out of H1: upstream bank account addition/KYC issue, not an active SIP mandate debit failure.'
+        };
+        updatedBatch.push(item);
+        return item;
+      }
+      return rec;
+    });
+
+    setRecords(updated);
+    if (updatedBatch.length > 0) {
+      await batchUpdateCandidateReviews(updatedBatch, 'BATCH_TRIAGE');
+    }
+    setExportNotification(`Batch triage executed for ${updatedBatch.length} high-confidence DIRECT and non-H1 onboarding records.`);
     setTimeout(() => setExportNotification(null), 4000);
   };
 
@@ -559,6 +652,27 @@ export const EvidenceReviewWorkspace: React.FC<EvidenceReviewWorkspaceProps> = (
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={handleSyncLocalDecisions}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 rounded-lg border border-blue-600 bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition shadow-sm disabled:opacity-50"
+            title="Migrate or synchronize local decisions to persistent Supabase cloud database"
+          >
+            {isSyncing ? (
+              <RefreshCw size={14} className="animate-spin" />
+            ) : (
+              <CloudUpload size={14} />
+            )}
+            <span>{isSyncing ? 'Syncing...' : 'Sync Local to Cloud'}</span>
+          </button>
+          <button
+            onClick={handleExportDecisionsBackup}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm"
+            title="Export local researcher decisions and timestamps as JSON backup"
+          >
+            <Download size={14} className="text-slate-500" />
+            <span>Backup JSON</span>
+          </button>
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
