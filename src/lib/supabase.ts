@@ -1,10 +1,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
 export const isSupabaseConfigured = (): boolean => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   return Boolean(
     supabaseUrl &&
     supabaseUrl.startsWith('https://') &&
@@ -20,6 +18,9 @@ export const getSupabaseClient = (): SupabaseClient | null => {
   if (!isSupabaseConfigured()) {
     return null;
   }
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
   if (!browserClient) {
     browserClient = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
@@ -33,6 +34,10 @@ export const getSupabaseClient = (): SupabaseClient | null => {
 
 // Server-side administrative client (bypasses RLS for bulk migrations & exports)
 export const getSupabaseAdminClient = (): SupabaseClient | null => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
   if (!supabaseUrl) return null;
   const key = supabaseServiceKey || supabaseAnonKey;
   if (!key) return null;

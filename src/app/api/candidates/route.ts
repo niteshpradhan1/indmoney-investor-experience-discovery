@@ -3,6 +3,9 @@ import { isSupabaseConfigured, getSupabaseClient, getSupabaseAdminClient } from 
 import { INITIAL_CANDIDATE_REVIEWS } from '@/data/candidateReviewsData';
 import { ReviewRecord } from '@/types';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   if (!isSupabaseConfigured()) {
     // Graceful offline / local fallback

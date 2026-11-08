@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { isSupabaseConfigured, getSupabaseClient } from '@/lib/supabase';
 import { DATASET_METRICS } from '@/data/candidateReviewsData';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   const configured = isSupabaseConfigured();
   let dbStatus = 'unconfigured';
