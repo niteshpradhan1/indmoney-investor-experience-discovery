@@ -17,6 +17,7 @@ export type HumanReviewStatus =
 
 export type ClassificationCategory =
   | 'Bank mandate failure'
+  | 'SIP debit failure'
   | 'SIP instalment debit failure'
   | 'NACH / AutoPay issue'
   | 'Bank account linking problem'
