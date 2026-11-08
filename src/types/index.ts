@@ -158,3 +158,134 @@ export interface DecisionLogEntry {
   status: 'Approved' | 'Proposed' | 'Under Review';
   category: 'Hypothesis' | 'Scope' | 'Design' | 'Analytics' | 'AI Governance' | 'Data Audit';
 }
+
+// ==============================================================================
+// PHASE 5: INVESTOR INTERVIEWS & JOURNEY TELEMETRY TYPES
+// ==============================================================================
+
+export type InvestorExperienceLevel = 'Novice' | 'Intermediate' | 'Experienced';
+export type SIPContinuityStatus = 'Active' | 'Paused' | 'Discontinued';
+export type FirstTimeSIPStatus = 'First-time SIP' | 'Repeat / Experienced SIP';
+export type ConsentStatus = 'Informed Consent Obtained' | 'Pending Consent';
+
+export type TelemetryEventName =
+  | 'sip_created'
+  | 'mandate_registration_started'
+  | 'mandate_activated'
+  | 'sip_debit_scheduled'
+  | 'sip_debit_failed'
+  | 'failure_notification_sent'
+  | 'failure_notification_viewed'
+  | 'recovery_attempted'
+  | 'sip_instalment_successful'
+  | 'sip_paused'
+  | 'sip_cancelled';
+
+export interface InterviewParticipant {
+  id: string; // e.g. "INV-001"
+  experienceProfile: InvestorExperienceLevel;
+  firstTimeSip: boolean;
+  sipStatus: SIPContinuityStatus;
+  bankMandateExperience: string; // e.g. "State Bank of India (PSU NACH)"
+  interviewDate: string;
+  consentObtained: boolean;
+  interviewNotes: string;
+  researcherObservations: string;
+  responses: Record<string, string>; // Q1 -> response text
+  verbatimQuotes: Array<{
+    id: string;
+    quote: string;
+    questionId: string;
+    linkedThemeId?: string;
+    isContradictory?: boolean;
+    researcherInterpretation?: string;
+  }>;
+  createdAt: string;
+}
+
+export interface Phase4PainPointTheme {
+  id: string;
+  code: string;
+  title: string;
+  reviewCount: number;
+  supportingReviewIds: string[];
+  description: string;
+  h1Relevance: 'Direct Support' | 'Indirect Context';
+  evidenceLimitation: string;
+}
+
+export interface TelemetryEventRecord {
+  eventId: string;
+  userId: string;
+  eventName: TelemetryEventName;
+  timestamp: string;
+  sipId: string;
+  bankName: string;
+  failureReason?: string;
+  amount?: number;
+}
+
+export interface CohortAnalysisSummary {
+  firstTimeSipCohort: {
+    totalInvestors: number;
+    mandateActivationRate: number; // percentage
+    firstDebitFailureRate: number; // percentage
+    subsequentDropOffRate: number; // percentage
+  };
+  experiencedSipCohort: {
+    totalInvestors: number;
+    mandateActivationRate: number;
+    firstDebitFailureRate: number;
+    subsequentDropOffRate: number;
+  };
+  failedMandateCohort: {
+    totalFailed: number;
+    recoveredWithin48h: number; // percentage
+    subsequentDebitSuccess: number; // percentage
+    involuntaryCancellationRate: number; // percentage
+  };
+  successfulMandateCohort: {
+    totalSuccessful: number;
+    instalmentSuccessRate: number; // percentage
+    cancellationRate: number; // percentage
+  };
+  repeatDebitFailures: {
+    singleFailure: number;
+    twoConsecutiveFailures: number;
+    threeOrMoreFailures: number;
+  };
+  pausesAndCancellations: {
+    voluntaryPauseCount: number;
+    postFailureCancellationCount: number;
+    proactiveCancellationCount: number;
+  };
+  retention12Month: {
+    eligibleInvestorsCount: number;
+    activeInvestorsCount: number; // at least 1 successful debit in prior 30 days
+    retentionRate: number;
+    strictDefinition: string;
+  };
+}
+
+export interface HypothesisValidationSynthesis {
+  status: 'NOT VALIDATED';
+  confidenceScore: number;
+  reviewCorpusDirectCount: number;
+  participantCount: number;
+  telemetryEventsCount: number;
+  supportingPillars: Array<{
+    title: string;
+    evidence: string;
+    strength: 'DIRECT' | 'SUPPORTIVE';
+  }>;
+  contradictoryFindings: Array<{
+    title: string;
+    finding: string;
+    implication: string;
+  }>;
+  missingDataGaps: Array<{
+    gap: string;
+    whyNeeded: string;
+  }>;
+  remainingValidationQuestions: string[];
+}

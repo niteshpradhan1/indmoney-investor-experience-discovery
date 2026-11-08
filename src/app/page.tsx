@@ -10,7 +10,7 @@ import { ThemesInsights } from '../components/ThemesInsights';
 import { OpportunityMatrix } from '../components/OpportunityMatrix';
 import { H1Workspace } from '../components/H1Workspace';
 import { RecoveryPrototype } from '../components/RecoveryPrototype';
-import { DiscoverySurvey } from '../components/DiscoverySurvey';
+import { InvestorInterviewsWorkspace } from '../components/InvestorInterviewsWorkspace';
 import { DecisionLog } from '../components/DecisionLog';
 import { ReportModal } from '../components/ReportModal';
 
@@ -109,7 +109,7 @@ export default function Home() {
       case 'prototype':
         return 'SIP Recovery Prototype';
       case 'survey':
-        return 'Discovery Survey & 10 Q&A';
+        return 'Investor Interviews & Behavioural Journey Telemetry (Phase 5)';
       case 'decision_log':
         return 'Decision Log & Governance';
       default:
@@ -191,7 +191,7 @@ export default function Home() {
           )}
 
           {activeSection === 'survey' && (
-            <DiscoverySurvey />
+            <InvestorInterviewsWorkspace />
           )}
 
           {activeSection === 'decision_log' && (
