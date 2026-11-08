@@ -20,7 +20,9 @@ import {
   XCircle,
   Layers,
   Settings,
-  HelpCircle as QuestionIcon
+  HelpCircle as QuestionIcon,
+  Bot,
+  Sparkles
 } from 'lucide-react';
 import {
   PrototypeStep,
@@ -29,6 +31,7 @@ import {
   UsabilityObservation,
   UsabilityEvaluationChecklist
 } from '../types';
+import { AIExplanationAssistant } from './AIExplanationAssistant';
 
 // ==============================================================================
 // NEUTRAL USABILITY TESTING TASKS (N = 4)
@@ -128,6 +131,22 @@ export const RecoveryPrototype: React.FC = () => {
   const [navigationErrors, setNavigationErrors] = useState<number>(0);
   const [researcherNotes, setResearcherNotes] = useState<string>('');
   const [recordedObservations, setRecordedObservations] = useState<UsabilityObservation[]>([]);
+
+  // Desktop right panel tab: AI Explainer vs PM Checklist
+  const [rightPanelTab, setRightPanelTab] = useState<'ai_explainer' | 'pm_checklist'>('ai_explainer');
+  // Mobile frame AI Assistant modal state
+  const [showMobileAIAssistant, setShowMobileAIAssistant] = useState<boolean>(false);
+  // Step 4 simulated bank polling state
+  const [isCheckingStatus, setIsCheckingStatus] = useState<boolean>(false);
+
+  // Simulated status check with bank clearing
+  const handleCheckBankStatus = () => {
+    setIsCheckingStatus(true);
+    setTimeout(() => {
+      setIsCheckingStatus(false);
+      setConfirmationStatus('payment_pending');
+    }, 750);
+  };
 
   // Reset prototype to initial dashboard state
   const handleResetPrototype = () => {
@@ -434,11 +453,21 @@ export const RecoveryPrototype: React.FC = () => {
             <div className="w-[360px] rounded-[36px] border-4 border-slate-900 bg-slate-900 p-2 shadow-2xl">
               <div className="relative min-h-[620px] rounded-[28px] bg-white text-slate-900 overflow-hidden flex flex-col font-sans">
                 {/* Mobile Top Status Bar */}
-                <div className="flex items-center justify-between px-5 pt-3 pb-2 text-[11px] font-semibold text-slate-600 bg-white border-b border-slate-100">
+                <div className="flex items-center justify-between px-4 pt-3 pb-2 text-[11px] font-semibold text-slate-600 bg-white border-b border-slate-100">
                   <span>9:41</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span className="text-[10px]">INDmoney</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowMobileAIAssistant(true)}
+                      className="flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-full border border-indigo-200 transition"
+                      title="Open AI Plain-Language Explainer"
+                    >
+                      <Bot size={11} />
+                      <span>Ask AI</span>
+                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                      <span className="text-[10px]">INDmoney</span>
+                    </div>
                   </div>
                 </div>
 
@@ -524,6 +553,16 @@ export const RecoveryPrototype: React.FC = () => {
                           Bank fee policies and potential return charges depend on your individual banking institution. Any mutual fund units allotted in previous instalments remain in your folio according to AMC records.
                         </p>
                       </div>
+
+                      {/* AI Explainer Helper Pill */}
+                      <button
+                        type="button"
+                        onClick={() => setShowMobileAIAssistant(true)}
+                        className="w-full text-center text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg py-2 px-3 flex items-center justify-center gap-1.5 hover:bg-indigo-100 transition shadow-2xs"
+                      >
+                        <Bot size={13} className="text-indigo-600" />
+                        <span>Why is debit unconfirmed? Ask AI Assistant</span>
+                      </button>
                     </div>
 
                     <button
@@ -599,6 +638,16 @@ export const RecoveryPrototype: React.FC = () => {
                         <li>Decide whether you want to retry payment or select a future date.</li>
                       </ul>
                     </div>
+
+                    {/* AI Explainer Helper Pill */}
+                    <button
+                      type="button"
+                      onClick={() => setShowMobileAIAssistant(true)}
+                      className="w-full text-center text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg py-2 px-3 flex items-center justify-center gap-1.5 hover:bg-indigo-100 transition shadow-2xs"
+                    >
+                      <Bot size={13} className="text-indigo-600" />
+                      <span>Are my mutual fund units safe? Ask AI Explainer</span>
+                    </button>
 
                     <button
                       onClick={handleProceedToOptions}
@@ -724,6 +773,16 @@ export const RecoveryPrototype: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* AI Explainer Helper Pill */}
+                    <button
+                      type="button"
+                      onClick={() => setShowMobileAIAssistant(true)}
+                      className="w-full text-center text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg py-2 px-3 flex items-center justify-center gap-1.5 hover:bg-indigo-100 transition shadow-2xs"
+                    >
+                      <Bot size={13} className="text-indigo-600" />
+                      <span>Compare Retry vs Reschedule? Ask AI Explainer</span>
+                    </button>
+
                     <button
                       onClick={() => handleSubmitRecoveryChoice(selectedOption)}
                       className="w-full rounded-xl bg-blue-700 py-3 text-xs font-bold text-white hover:bg-blue-800 transition shadow-sm mt-1"
@@ -803,6 +862,24 @@ export const RecoveryPrototype: React.FC = () => {
                             </div>
                           )}
                         </div>
+
+                        {/* Interactive Bank Settlement Polling Check */}
+                        {confirmationStatus === 'retry_requested' && (
+                          <div className="pt-1">
+                            <button
+                              type="button"
+                              onClick={handleCheckBankStatus}
+                              disabled={isCheckingStatus}
+                              className="w-full rounded-lg border border-blue-300 bg-blue-50 py-2.5 text-xs font-bold text-blue-800 hover:bg-blue-100 transition flex items-center justify-center gap-1.5 shadow-2xs"
+                            >
+                              <RefreshCw size={13} className={isCheckingStatus ? "animate-spin text-blue-700" : "text-blue-700"} />
+                              <span>{isCheckingStatus ? 'Contacting Bank Clearing Network...' : 'Check Bank Settlement Status (Simulated)'}</span>
+                            </button>
+                            <p className="text-[10px] text-slate-500 text-center mt-1">
+                              * Simulates checking NPCI / bank callback status without modifying database.
+                            </p>
+                          </div>
+                        )}
 
                         <div className="text-[10px] text-slate-500 italic">
                           * Researcher controls for simulating different payment outcomes are located in the separate Researcher Evaluation view.
@@ -894,51 +971,97 @@ export const RecoveryPrototype: React.FC = () => {
                     </button>
                   </div>
                 )}
+
+                {/* IN-APP MOBILE AI ASSISTANT SHEET OVERLAY */}
+                {showMobileAIAssistant && (
+                  <div className="absolute inset-0 z-30 bg-slate-900/50 backdrop-blur-xs flex flex-col justify-end p-2 animate-in fade-in duration-200">
+                    <div className="max-h-[580px] overflow-y-auto rounded-2xl bg-white shadow-2xl">
+                      <AIExplanationAssistant
+                        currentStep={currentStep}
+                        selectedOption={selectedOption}
+                        confirmationStatus={confirmationStatus}
+                        onClose={() => setShowMobileAIAssistant(false)}
+                        isCompact={true}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Right: Observer Information Card */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Active Test Context</span>
-                <h3 className="font-bold text-slate-900 text-sm mt-0.5">PM Observer Checklist</h3>
+          {/* Right: AI Explainer & PM Observer Panel */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRightPanelTab('ai_explainer')}
+                  className={`text-xs font-bold pb-1 transition flex items-center gap-1.5 border-b-2 ${
+                    rightPanelTab === 'ai_explainer'
+                      ? 'border-indigo-600 text-indigo-700'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Bot size={14} />
+                  <span>AI Explainer Assistant</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRightPanelTab('pm_checklist')}
+                  className={`text-xs font-bold pb-1 transition flex items-center gap-1.5 border-b-2 ${
+                    rightPanelTab === 'pm_checklist'
+                      ? 'border-blue-600 text-blue-700'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <UserCheck size={14} />
+                  <span>PM Checklist</span>
+                </button>
               </div>
               <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-mono text-slate-600">
                 {participantId}
               </span>
             </div>
 
-            <div className="space-y-3 text-xs leading-relaxed text-slate-600">
-              <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
-                <div className="font-bold text-slate-900 text-[11px]">1. Unconfirmed Debit Understanding:</div>
-                <p className="text-[11px] text-slate-600 mt-0.5">
-                  Does the user understand that debit status is unconfirmed, and do they plan to check their bank statement?
-                </p>
-              </div>
+            {rightPanelTab === 'ai_explainer' ? (
+              <AIExplanationAssistant
+                currentStep={currentStep}
+                selectedOption={selectedOption}
+                confirmationStatus={confirmationStatus}
+                isCompact={false}
+              />
+            ) : (
+              <div className="space-y-3 text-xs leading-relaxed text-slate-600">
+                <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
+                  <div className="font-bold text-slate-900 text-[11px]">1. Unconfirmed Debit Understanding:</div>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Does the user understand that debit status is unconfirmed, and do they plan to check their bank statement?
+                  </p>
+                </div>
 
-              <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
-                <div className="font-bold text-slate-900 text-[11px]">2. Pending State Perception:</div>
-                <p className="text-[11px] text-slate-600 mt-0.5">
-                  When Step 4 shows &ldquo;Retry Request Submitted — Outcome Pending&rdquo;, does the user recognize that payment is not yet confirmed?
-                </p>
-              </div>
+                <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
+                  <div className="font-bold text-slate-900 text-[11px]">2. Pending State Perception:</div>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    When Step 4 shows &ldquo;Retry Request Submitted — Outcome Pending&rdquo;, does the user recognize that payment is not yet confirmed?
+                  </p>
+                </div>
 
-              <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
-                <div className="font-bold text-slate-900 text-[11px]">3. Rescheduling Clarity:</div>
-                <p className="text-[11px] text-slate-600 mt-0.5">
-                  Does the user grasp that rescheduling alters future debit timing without making false guarantees about outcomes?
-                </p>
-              </div>
-            </div>
+                <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
+                  <div className="font-bold text-slate-900 text-[11px]">3. Rescheduling Clarity:</div>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Does the user grasp that rescheduling alters future debit timing without making false guarantees about outcomes?
+                  </p>
+                </div>
 
-            <button
-              onClick={() => setActiveTab('evaluator')}
-              className="w-full rounded-lg border border-blue-200 bg-blue-50 py-2 text-xs font-bold text-blue-800 hover:bg-blue-100 transition"
-            >
-              Open Researcher Evaluator &amp; Controls →
-            </button>
+                <button
+                  onClick={() => setActiveTab('evaluator')}
+                  className="w-full rounded-lg border border-blue-200 bg-blue-50 py-2 text-xs font-bold text-blue-800 hover:bg-blue-100 transition"
+                >
+                  Open Researcher Evaluator &amp; Controls →
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
